@@ -63,6 +63,12 @@ export interface Level {
   powerUpChance: number;
 }
 
+export interface Trail {
+  x: number;
+  y: number;
+  life: number;
+}
+
 export interface GameData {
   canvas: {
     width: number;
@@ -73,6 +79,7 @@ export interface GameData {
   bricks: Brick[];
   particles: Particle[];
   powerups: PowerUp[];
+  trails: Trail[];
   score: number;
   lives: number;
   level: number;
@@ -80,4 +87,10 @@ export interface GameData {
   highScore: number;
   activePowerUp: PowerUpType | null;
   powerUpTimer: number;
+  combo: number;
+  maxCombo: number;
+  comboTimer: number;
+  shakeX: number;
+  shakeY: number;
+  shakeIntensity: number;
 }
