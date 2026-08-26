@@ -103,6 +103,10 @@ export default function GameCanvas() {
         if (data.state === 'playing' || data.state === 'endless') data.state = 'paused';
         else if (data.state === 'paused') data.state = data.endlessWave > 0 ? 'endless' : 'playing';
       }
+      if (e.code === 'KeyM' && data.state === 'paused') {
+        data.state = 'menu';
+        setState('menu');
+      }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -214,7 +218,7 @@ export default function GameCanvas() {
       {state === 'paused' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-lg">
           <h2 className="text-3xl font-bold text-white mb-6">PAUSED</h2>
-          <p className="text-gray-300 text-sm mb-4">Press P or ESC to resume</p>
+          <p className="text-gray-300 text-sm mb-4">Press P or ESC to resume · M to quit</p>
           <button
             onClick={() => {
               const data = gameDataRef.current;
@@ -223,9 +227,21 @@ export default function GameCanvas() {
                 setState(data.state);
               }
             }}
-            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors mb-3"
           >
             Resume
+          </button>
+          <button
+            onClick={() => {
+              const data = gameDataRef.current;
+              if (data) {
+                data.state = 'menu';
+                setState('menu');
+              }
+            }}
+            className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+          >
+            Quit to Menu
           </button>
         </div>
       )}
