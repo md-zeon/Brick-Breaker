@@ -29,6 +29,36 @@ export interface Brick {
   maxHits: number;
   color: string;
   points: number;
+  explosive?: boolean;
+}
+
+export interface Boss {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  hp: number;
+  maxHp: number;
+  dx: number;
+  dy: number;
+  segments: BossSegment[];
+}
+
+export interface BossSegment {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  hp: number;
+  color: string;
+}
+
+export interface Laser {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  dy: number;
 }
 
 export interface Particle {
@@ -52,21 +82,30 @@ export interface PowerUp {
   active: boolean;
 }
 
-export type PowerUpType = 'wide' | 'multi' | 'slow' | 'life' | 'sticky';
+export type PowerUpType = 'wide' | 'multi' | 'slow' | 'life' | 'sticky' | 'laser';
 
-export type GameState = 'menu' | 'playing' | 'paused' | 'gameover' | 'levelcomplete' | 'levelselect';
+export type GameState = 'menu' | 'playing' | 'paused' | 'gameover' | 'levelcomplete' | 'levelselect' | 'endless';
 
 export interface Level {
   name: string;
   bricks: number[][];
   ballSpeed: number;
   powerUpChance: number;
+  isBoss?: boolean;
 }
 
 export interface Trail {
   x: number;
   y: number;
   life: number;
+}
+
+export interface BackgroundStar {
+  x: number;
+  y: number;
+  speed: number;
+  size: number;
+  alpha: number;
 }
 
 export interface GameData {
@@ -80,6 +119,8 @@ export interface GameData {
   particles: Particle[];
   powerups: PowerUp[];
   trails: Trail[];
+  lasers: Laser[];
+  boss: Boss | null;
   score: number;
   lives: number;
   level: number;
@@ -93,4 +134,8 @@ export interface GameData {
   shakeX: number;
   shakeY: number;
   shakeIntensity: number;
+  laserCooldown: number;
+  endlessWave: number;
+  backgroundStars: BackgroundStar[];
+  bgTime: number;
 }

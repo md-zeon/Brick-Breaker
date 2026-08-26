@@ -3,10 +3,11 @@
 interface MenuScreenProps {
   highScore: number;
   onStart: () => void;
+  onStartEndless: () => void;
   onLevelSelect: () => void;
 }
 
-export default function MenuScreen({ highScore, onStart, onLevelSelect }: MenuScreenProps) {
+export default function MenuScreen({ highScore, onStart, onStartEndless, onLevelSelect }: MenuScreenProps) {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 rounded-lg">
       <div className="text-center">
@@ -28,9 +29,16 @@ export default function MenuScreen({ highScore, onStart, onLevelSelect }: MenuSc
 
         <button
           onClick={onLevelSelect}
-          className="block w-48 mx-auto mb-6 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors"
+          className="block w-48 mx-auto mb-3 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors"
         >
           SELECT LEVEL
+        </button>
+
+        <button
+          onClick={onStartEndless}
+          className="block w-48 mx-auto mb-6 px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition-colors"
+        >
+          ENDLESS MODE
         </button>
 
         {highScore > 0 && (

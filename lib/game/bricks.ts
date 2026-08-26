@@ -25,7 +25,8 @@ export function createBricks(levelIndex: number, canvasWidth: number): Brick[] {
 
       const colorIndex = r % COLORS.brickColors.length;
       let color = COLORS.brickColors[colorIndex];
-      if (hits === -1) color = COLORS.indestructible;
+      if (hits === 4) color = COLORS.explosive;
+      else if (hits === -1) color = COLORS.indestructible;
       else if (hits >= 2) color = adjustBrightness(color, 0.7);
 
       bricks.push({
@@ -33,10 +34,11 @@ export function createBricks(levelIndex: number, canvasWidth: number): Brick[] {
         y: BRICK_OFFSET_TOP + r * (BRICK_HEIGHT + BRICK_PADDING),
         width: BRICK_WIDTH,
         height: BRICK_HEIGHT,
-        hits,
-        maxHits: hits === -1 ? -1 : hits,
+        hits: hits === 4 ? 1 : hits,
+        maxHits: hits === -1 ? -1 : hits === 4 ? 1 : hits,
         color,
-        points: hits === -1 ? 0 : hits * 10,
+        points: hits === 4 ? 15 : hits === -1 ? 0 : hits * 10,
+        explosive: hits === 4,
       });
     }
   }
@@ -48,7 +50,7 @@ export function allBricksDestroyed(bricks: Brick[]): boolean {
   return bricks.every(b => b.hits === 0 || b.hits === -1);
 }
 
-function adjustBrightness(hex: string, factor: number): string {
+export function adjustBrightness(hex: string, factor: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);

@@ -1,7 +1,7 @@
 import { PowerUp, PowerUpType } from './types';
 import { COLORS } from './levels';
 
-const POWERUP_TYPES: PowerUpType[] = ['wide', 'multi', 'slow', 'life', 'sticky'];
+const POWERUP_TYPES: PowerUpType[] = ['wide', 'multi', 'slow', 'life', 'sticky', 'laser'];
 const POWERUP_SIZE = 16;
 
 export function maybeSpawnPowerUp(x: number, y: number, chance: number): PowerUp | null {
@@ -37,6 +37,7 @@ export function drawPowerUp(ctx: CanvasRenderingContext2D, powerup: PowerUp): vo
     slow: '◎',
     life: '♥',
     sticky: '▼',
+    laser: '⚡',
   };
 
   ctx.fillStyle = COLORS.powerUp;

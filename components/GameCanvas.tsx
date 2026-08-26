@@ -5,6 +5,7 @@ import { GameData } from '@/lib/game/types';
 import {
   createGameData,
   startGame,
+  startEndless,
   selectLevel,
   updateGame,
   renderGame,
@@ -32,6 +33,7 @@ export default function GameCanvas() {
   const [lives, setLives] = useState(3);
   const [level, setLevel] = useState(0);
   const [highScore, setHighScore] = useState(0);
+  const [endlessWave, setEndlessWave] = useState(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -50,16 +52,17 @@ export default function GameCanvas() {
       setLives(data.lives);
       setLevel(data.level);
       setHighScore(data.highScore);
+      setEndlessWave(data.endlessWave);
     };
 
     const loop = () => {
       const data = gameDataRef.current;
       if (!data) return;
 
-      if (data.state === 'playing' && keysRef.current.left) {
+      if ((data.state === 'playing' || data.state === 'endless') && keysRef.current.left) {
         mouseXRef.current = Math.max(0, mouseXRef.current - 8);
       }
-      if (data.state === 'playing' && keysRef.current.right) {
+      if ((data.state === 'playing' || data.state === 'endless') && keysRef.current.right) {
         mouseXRef.current = Math.min(CANVAS_WIDTH, mouseXRef.current + 8);
       }
 
@@ -92,13 +95,13 @@ export default function GameCanvas() {
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') keysRef.current.left = true;
       if (e.code === 'ArrowRight' || e.code === 'KeyD') keysRef.current.right = true;
 
-      if (e.code === 'Space' && data.state === 'playing') {
+      if (e.code === 'Space' && (data.state === 'playing' || data.state === 'endless')) {
         e.preventDefault();
         if (data.ball.stuck) launchBall(data.ball);
       }
       if (e.code === 'KeyP' || e.code === 'Escape') {
-        if (data.state === 'playing') data.state = 'paused';
-        else if (data.state === 'paused') data.state = 'playing';
+        if (data.state === 'playing' || data.state === 'endless') data.state = 'paused';
+        else if (data.state === 'paused') data.state = data.endlessWave > 0 ? 'endless' : 'playing';
       }
     };
 
@@ -110,7 +113,7 @@ export default function GameCanvas() {
     const handlePointerDown = () => {
       const data = gameDataRef.current;
       if (!data) return;
-      if (data.state === 'playing' && data.ball.stuck) {
+      if ((data.state === 'playing' || data.state === 'endless') && data.ball.stuck) {
         launchBall(data.ball);
       }
     };
@@ -134,6 +137,12 @@ export default function GameCanvas() {
     startGame(data);
   };
 
+  const handleStartEndless = () => {
+    const data = gameDataRef.current;
+    if (!data) return;
+    startEndless(data);
+  };
+
   const handleSelectLevel = (lvl: number) => {
     const data = gameDataRef.current;
     if (!data) return;
@@ -148,6 +157,7 @@ export default function GameCanvas() {
       selectLevel(data, next);
     } else {
       data.state = 'menu';
+      setState('menu');
     }
   };
 
@@ -172,6 +182,7 @@ export default function GameCanvas() {
         <MenuScreen
           highScore={highScore}
           onStart={handleStart}
+          onStartEndless={handleStartEndless}
           onLevelSelect={() => {
             const data = gameDataRef.current;
             if (data) data.state = 'levelselect';
@@ -191,8 +202,13 @@ export default function GameCanvas() {
         />
       )}
 
-      {state === 'playing' && (
-        <GameOverlay score={score} lives={lives} level={level} />
+      {(state === 'playing' || state === 'endless') && (
+        <GameOverlay
+          score={score}
+          lives={lives}
+          level={level}
+          wave={state === 'endless' ? endlessWave : undefined}
+        />
       )}
 
       {state === 'paused' && (
@@ -202,7 +218,10 @@ export default function GameCanvas() {
           <button
             onClick={() => {
               const data = gameDataRef.current;
-              if (data) data.state = 'playing';
+              if (data) {
+                data.state = data.endlessWave > 0 ? 'endless' : 'playing';
+                setState(data.state);
+              }
             }}
             className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
           >
