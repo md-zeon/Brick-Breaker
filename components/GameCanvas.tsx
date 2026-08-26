@@ -25,6 +25,7 @@ export default function GameCanvas() {
   const gameDataRef = useRef<GameData | null>(null);
   const animFrameRef = useRef<number>(0);
   const mouseXRef = useRef<number>(CANVAS_WIDTH / 2);
+  const keysRef = useRef({ left: false, right: false });
 
   const [state, setState] = useState<GameData['state']>('menu');
   const [score, setScore] = useState(0);
@@ -55,6 +56,13 @@ export default function GameCanvas() {
       const data = gameDataRef.current;
       if (!data) return;
 
+      if (data.state === 'playing' && keysRef.current.left) {
+        mouseXRef.current = Math.max(0, mouseXRef.current - 8);
+      }
+      if (data.state === 'playing' && keysRef.current.right) {
+        mouseXRef.current = Math.min(CANVAS_WIDTH, mouseXRef.current + 8);
+      }
+
       updateGame(data, mouseXRef.current);
       renderGame(ctx, data);
       syncUI(data);
@@ -73,12 +81,16 @@ export default function GameCanvas() {
 
     const handlePointerMove = (e: PointerEvent) => {
       const rect = canvas.getBoundingClientRect();
-      mouseXRef.current = e.clientX - rect.left;
+      const scaleX = CANVAS_WIDTH / rect.width;
+      mouseXRef.current = (e.clientX - rect.left) * scaleX;
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const data = gameDataRef.current;
       if (!data) return;
+
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') keysRef.current.left = true;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') keysRef.current.right = true;
 
       if (e.code === 'Space' && data.state === 'playing') {
         e.preventDefault();
@@ -90,6 +102,11 @@ export default function GameCanvas() {
       }
     };
 
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') keysRef.current.left = false;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') keysRef.current.right = false;
+    };
+
     const handlePointerDown = () => {
       const data = gameDataRef.current;
       if (!data) return;
@@ -98,14 +115,16 @@ export default function GameCanvas() {
       }
     };
 
-    canvas.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointermove', handlePointerMove);
     canvas.addEventListener('pointerdown', handlePointerDown);
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
 
     return () => {
-      canvas.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointermove', handlePointerMove);
       canvas.removeEventListener('pointerdown', handlePointerDown);
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
 
