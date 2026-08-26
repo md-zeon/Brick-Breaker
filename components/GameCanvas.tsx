@@ -155,6 +155,7 @@ export default function GameCanvas() {
     const data = gameDataRef.current;
     if (!data) return;
     data.state = 'menu';
+    setState('menu');
   };
 
   return (
@@ -171,14 +172,22 @@ export default function GameCanvas() {
         <MenuScreen
           highScore={highScore}
           onStart={handleStart}
-          onLevelSelect={() => setState('levelselect')}
+          onLevelSelect={() => {
+            const data = gameDataRef.current;
+            if (data) data.state = 'levelselect';
+            setState('levelselect');
+          }}
         />
       )}
 
       {state === 'levelselect' && (
         <LevelSelect
           onSelect={handleSelectLevel}
-          onBack={() => setState('menu')}
+          onBack={() => {
+            const data = gameDataRef.current;
+            if (data) data.state = 'menu';
+            setState('menu');
+          }}
         />
       )}
 
