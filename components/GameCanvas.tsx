@@ -43,6 +43,11 @@ export default function GameCanvas() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = CANVAS_WIDTH * dpr;
+    canvas.height = CANVAS_HEIGHT * dpr;
+    ctx.scale(dpr, dpr);
+
     gameDataRef.current = createGameData(CANVAS_WIDTH, CANVAS_HEIGHT);
     setState(gameDataRef.current.state);
     setHighScore(gameDataRef.current.highScore);
@@ -104,7 +109,10 @@ export default function GameCanvas() {
       }
       if (e.code === 'KeyP' || e.code === 'Escape') {
         if (data.state === 'playing' || data.state === 'endless') data.state = 'paused';
-        else if (data.state === 'paused') data.state = data.endlessWave > 0 ? 'endless' : 'playing';
+        else if (data.state === 'paused') {
+          data.lastTime = 0;
+          data.state = data.endlessWave > 0 ? 'endless' : 'playing';
+        }
       }
       if (e.code === 'KeyM' && data.state === 'paused') {
         data.state = 'menu';
@@ -179,10 +187,8 @@ export default function GameCanvas() {
     <div className="relative select-none" style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}>
       <canvas
         ref={canvasRef}
-        width={CANVAS_WIDTH}
-        height={CANVAS_HEIGHT}
         className="rounded-lg"
-        style={{ background: '#0A090F' }}
+        style={{ background: '#0A090F', width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}
       />
 
       {state === 'menu' && (
@@ -227,6 +233,7 @@ export default function GameCanvas() {
             onClick={() => {
               const data = gameDataRef.current;
               if (data) {
+                data.lastTime = 0;
                 data.state = data.endlessWave > 0 ? 'endless' : 'playing';
                 setState(data.state);
               }

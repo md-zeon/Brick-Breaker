@@ -11,6 +11,7 @@ import { playHit, playBreak, playBounce, playPowerUp, playLoseLife, playLevelCom
 const HIGH_SCORE_KEY = 'brick-breaker-highscore';
 const UNLOCKED_LEVEL_KEY = 'brick-breaker-unlocked-level';
 const MAX_TRAIL = 12;
+const MAX_TOTAL_PARTICLES = 200;
 const COMBO_TIMEOUT = 90;
 const LASER_SPEED = 8;
 const LASER_COOLDOWN = 15;
@@ -286,6 +287,7 @@ export function createGameData(canvasWidth: number, canvasHeight: number): GameD
     endlessWave: 0,
     backgroundStars: createBackgroundStars(canvasWidth, canvasHeight),
     bgTime: 0,
+    lastTime: 0,
   };
 }
 
@@ -311,6 +313,7 @@ export function startGame(data: GameData): void {
   data.shakeIntensity = 0;
   data.laserCooldown = 0;
   data.endlessWave = 0;
+  data.lastTime = 0;
   resetBall(data.ball, data.paddle);
 
   const level = LEVELS[0];
@@ -339,6 +342,7 @@ export function startEndless(data: GameData): void {
   data.shakeY = 0;
   data.shakeIntensity = 0;
   data.laserCooldown = 0;
+  data.lastTime = 0;
   data.ball.speed = 5;
   spawnEndlessWave(data);
   resetBall(data.ball, data.paddle);
@@ -413,6 +417,7 @@ export function selectLevel(data: GameData, level: number): void {
   data.shakeY = 0;
   data.shakeIntensity = 0;
   data.laserCooldown = 0;
+  data.lastTime = 0;
   resetBall(data.ball, data.paddle);
 
   const levelData = LEVELS[level];
@@ -425,11 +430,18 @@ function addShake(data: GameData, intensity: number): void {
   data.shakeIntensity = Math.min(data.shakeIntensity + intensity, 12);
 }
 
-function updateShake(data: GameData): void {
+function pushParticles(data: GameData, newParticles: Particle[]): void {
+  data.particles.push(...newParticles);
+  if (data.particles.length > MAX_TOTAL_PARTICLES) {
+    data.particles.splice(0, data.particles.length - MAX_TOTAL_PARTICLES);
+  }
+}
+
+function updateShake(data: GameData, dt: number): void {
   if (data.shakeIntensity > 0) {
     data.shakeX = (Math.random() - 0.5) * data.shakeIntensity * 2;
     data.shakeY = (Math.random() - 0.5) * data.shakeIntensity * 2;
-    data.shakeIntensity *= 0.85;
+    data.shakeIntensity *= Math.pow(0.85, dt);
     if (data.shakeIntensity < 0.5) {
       data.shakeIntensity = 0;
       data.shakeX = 0;
@@ -446,19 +458,19 @@ function addTrail(data: GameData): void {
   }
 }
 
-function updateTrails(data: GameData): void {
+function updateTrails(data: GameData, dt: number): void {
   for (let i = data.trails.length - 1; i >= 0; i--) {
-    data.trails[i].life -= 0.08;
+    data.trails[i].life -= 0.08 * dt;
     if (data.trails[i].life <= 0) {
       data.trails.splice(i, 1);
     }
   }
 }
 
-function updateBackground(data: GameData): void {
-  data.bgTime += 0.02;
+function updateBackground(data: GameData, dt: number): void {
+  data.bgTime += 0.02 * dt;
   for (const star of data.backgroundStars) {
-    star.y += star.speed;
+    star.y += star.speed * dt;
     if (star.y > data.canvas.height) {
       star.y = 0;
       star.x = Math.random() * data.canvas.width;
@@ -475,12 +487,12 @@ function fireLaser(data: GameData): void {
   );
 }
 
-function updateLasers(data: GameData): void {
-  if (data.laserCooldown > 0) data.laserCooldown--;
+function updateLasers(data: GameData, dt: number): void {
+  if (data.laserCooldown > 0) data.laserCooldown -= dt;
 
   for (let i = data.lasers.length - 1; i >= 0; i--) {
     const laser = data.lasers[i];
-    laser.y += laser.dy;
+    laser.y += laser.dy * dt;
     if (laser.y + laser.height < 0) {
       data.lasers.splice(i, 1);
       continue;
@@ -500,7 +512,7 @@ function updateLasers(data: GameData): void {
         brick.hits--;
         if (brick.hits === 0) {
           data.score += brick.points;
-          data.particles.push(...createParticles(
+          pushParticles(data, createParticles(
             brick.x + brick.width / 2,
             brick.y + brick.height / 2,
             brick.color
@@ -522,7 +534,7 @@ function explodeBrick(data: GameData, brick: Brick): void {
   const radius = brick.width * 1.2;
 
   addShake(data, 6);
-  data.particles.push(...createParticles(cx, cy, COLORS.explosive, 16));
+  pushParticles(data, createParticles(cx, cy, COLORS.explosive, 16));
 
   for (const b of data.bricks) {
     if (b === brick || b.hits === 0 || b.hits === -1) continue;
@@ -533,26 +545,30 @@ function explodeBrick(data: GameData, brick: Brick): void {
       b.hits--;
       if (b.hits === 0) {
         data.score += b.points;
-        data.particles.push(...createParticles(bx, by, b.color, 6));
+        pushParticles(data, createParticles(bx, by, b.color, 6));
         if (b.explosive) {
-          setTimeout(() => explodeBrick(data, b), 50);
+          setTimeout(() => {
+            if (data.state === 'playing' || data.state === 'endless') {
+              explodeBrick(data, b);
+            }
+          }, 50);
         }
       }
     }
   }
 }
 
-function updateBoss(data: GameData): void {
+function updateBoss(data: GameData, dt: number): void {
   const boss = data.boss;
   if (!boss) return;
 
-  boss.x += boss.dx;
+  boss.x += boss.dx * dt;
   if (boss.x <= 0 || boss.x + boss.width >= data.canvas.width) {
     boss.dx *= -1;
   }
 
   for (const seg of boss.segments) {
-    seg.x += boss.dx * 0.7;
+    seg.x += boss.dx * 0.7 * dt;
     if (seg.x <= 0 || seg.x + seg.width >= data.canvas.width) {
       seg.x = Math.max(0, Math.min(seg.x, data.canvas.width - seg.width));
     }
@@ -583,15 +599,14 @@ function updateBoss(data: GameData): void {
       playHit();
       if (seg.hp <= 0) {
         data.score += 50;
-        data.particles.push(...createParticles(
+        pushParticles(data, createParticles(
           seg.x + seg.width / 2, seg.y + seg.height / 2, seg.color, 12
         ));
+        boss.segments = boss.segments.filter(s => s.hp > 0);
       }
       break;
     }
   }
-
-  boss.segments = boss.segments.filter(s => s.hp > 0);
 
   if (boss.segments.length === 0) {
     const col = circleRectCollision(
@@ -611,7 +626,7 @@ function updateBoss(data: GameData): void {
       if (boss.hp <= 0) {
         data.score += 200;
         addShake(data, 10);
-        data.particles.push(...createParticles(
+        pushParticles(data, createParticles(
           boss.x + boss.width / 2, boss.y + boss.height / 2, COLORS.boss, 24
         ));
         data.boss = null;
@@ -627,24 +642,28 @@ function updateBoss(data: GameData): void {
 export function updateGame(data: GameData, mouseX: number): void {
   if (data.state !== 'playing' && data.state !== 'endless') return;
 
+  const now = performance.now();
+  const dt = data.lastTime === 0 ? 1 : Math.min((now - data.lastTime) / 16.667, 3);
+  data.lastTime = now;
+
   updatePaddle(data.paddle, mouseX, data.canvas.width);
-  updateBackground(data);
+  updateBackground(data, dt);
 
   if (data.comboTimer > 0) {
-    data.comboTimer--;
+    data.comboTimer -= dt;
     if (data.comboTimer <= 0) {
       data.combo = 0;
     }
   }
 
   addTrail(data);
-  updateTrails(data);
-  updateShake(data);
+  updateTrails(data, dt);
+  updateShake(data, dt);
 
   if (data.activePowerUp === 'laser' && data.ball.stuck === false) {
     fireLaser(data);
   }
-  updateLasers(data);
+  updateLasers(data, dt);
 
   if (data.ball.stuck) {
     data.ball.x = data.paddle.x + data.paddle.width / 2;
@@ -652,7 +671,7 @@ export function updateGame(data: GameData, mouseX: number): void {
     return;
   }
 
-  const ballResult = updateBall(data.ball, data.canvas.width, data.canvas.height);
+  const ballResult = updateBall(data.ball, data.canvas.width, data.canvas.height, dt);
 
   if (ballResult === 'lost') {
     data.lives--;
@@ -685,7 +704,7 @@ export function updateGame(data: GameData, mouseX: number): void {
   }
 
   if (data.boss) {
-    updateBoss(data);
+    updateBoss(data, dt);
     return;
   }
 
@@ -723,7 +742,7 @@ export function updateGame(data: GameData, mouseX: number): void {
         }
 
         addShake(data, 4);
-        data.particles.push(...createParticles(
+        pushParticles(data, createParticles(
           brick.x + brick.width / 2,
           brick.y + brick.height / 2,
           brick.color
@@ -735,10 +754,13 @@ export function updateGame(data: GameData, mouseX: number): void {
 
         const level = LEVELS[data.level];
         if (level) {
+          const chance = data.state === 'endless'
+            ? Math.min(0.1 + data.endlessWave * 0.01, 0.35)
+            : level.powerUpChance;
           const powerUp = maybeSpawnPowerUp(
             brick.x + brick.width / 2,
             brick.y + brick.height / 2,
-            level.powerUpChance
+            chance
           );
           if (powerUp) data.powerups.push(powerUp);
         }
@@ -750,8 +772,8 @@ export function updateGame(data: GameData, mouseX: number): void {
     }
   }
 
-  updateParticles(data.particles);
-  updatePowerUps(data.powerups, data.canvas.height);
+  updateParticles(data.particles, dt);
+  updatePowerUps(data.powerups, data.canvas.height, dt);
 
   for (let i = data.powerups.length - 1; i >= 0; i--) {
     const p = data.powerups[i];
@@ -768,7 +790,7 @@ export function updateGame(data: GameData, mouseX: number): void {
   }
 
   if (data.activePowerUp && data.powerUpTimer > 0) {
-    data.powerUpTimer--;
+    data.powerUpTimer -= dt;
     if (data.powerUpTimer <= 0) {
       removePowerUp(data);
     }
@@ -806,10 +828,6 @@ function applyPowerUp(data: GameData, type: PowerUpType): void {
       data.activePowerUp = null;
       data.powerUpTimer = 0;
       break;
-    case 'multi':
-      data.activePowerUp = null;
-      data.powerUpTimer = 0;
-      break;
     case 'fireball':
       data.ball.dx *= 1.15;
       data.ball.dy *= 1.15;
@@ -825,13 +843,23 @@ function removePowerUp(data: GameData): void {
   if (data.activePowerUp === 'wide') {
     data.paddle.width = 100;
   }
-  if (data.activePowerUp === 'slow') {
-    const level = LEVELS[data.level];
-    if (level) data.ball.speed = level.ballSpeed;
-  }
-  if (data.activePowerUp === 'fireball') {
-    const level = LEVELS[data.level];
-    if (level) data.ball.speed = level.ballSpeed;
+  if (data.activePowerUp === 'slow' || data.activePowerUp === 'fireball') {
+    let targetSpeed: number;
+    if (data.state === 'endless') {
+      targetSpeed = 5 + data.endlessWave * 0.3;
+    } else {
+      const level = LEVELS[data.level];
+      targetSpeed = level ? level.ballSpeed : data.ball.speed;
+    }
+    data.ball.speed = targetSpeed;
+    if (!data.ball.stuck) {
+      const currentSpeed = Math.sqrt(data.ball.dx ** 2 + data.ball.dy ** 2);
+      if (currentSpeed > 0) {
+        const scale = targetSpeed / currentSpeed;
+        data.ball.dx *= scale;
+        data.ball.dy *= scale;
+      }
+    }
   }
   data.activePowerUp = null;
   data.powerUpTimer = 0;
@@ -1264,13 +1292,6 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
     ctx.textAlign = 'center';
     ctx.fillText('SCORE ×2', canvas.width / 2, canvas.height / 2 + 60);
     ctx.shadowBlur = 0;
-  }
-
-  if (data.state === 'endless') {
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = '12px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(`Wave: ${data.endlessWave}`, 10, canvas.height - 10);
   }
 
   ctx.restore();

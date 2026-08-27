@@ -28,15 +28,13 @@ export function resetBall(ball: Ball, paddle: Paddle): void {
   ball.stuck = true;
 }
 
-export function updateBall(ball: Ball, canvasWidth: number, canvasHeight: number): 'lost' | 'wall' | 'ok' {
+export function updateBall(ball: Ball, canvasWidth: number, canvasHeight: number, dt: number): 'lost' | 'wall' | 'ok' {
   if (ball.stuck) {
-    ball.x = ball.x;
-    ball.y = ball.y;
     return 'ok';
   }
 
-  ball.x += ball.dx;
-  ball.y += ball.dy;
+  ball.x += ball.dx * dt;
+  ball.y += ball.dy * dt;
 
   if (ball.x - ball.radius <= 0) {
     ball.x = ball.radius;

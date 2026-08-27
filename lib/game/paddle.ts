@@ -15,8 +15,3 @@ export function updatePaddle(paddle: Paddle, targetX: number, canvasWidth: numbe
   paddle.x = targetX - paddle.width / 2;
   paddle.x = Math.max(0, Math.min(paddle.x, canvasWidth - paddle.width));
 }
-
-export function movePaddle(paddle: Paddle, direction: number, canvasWidth: number, speed: number = 8): void {
-  paddle.x += direction * speed;
-  paddle.x = Math.max(0, Math.min(paddle.x, canvasWidth - paddle.width));
-}

@@ -24,13 +24,13 @@ export function createParticles(x: number, y: number, color: string, count: numb
   return particles.slice(0, MAX_PARTICLES);
 }
 
-export function updateParticles(particles: Particle[]): void {
+export function updateParticles(particles: Particle[], dt: number): void {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
-    p.x += p.dx;
-    p.y += p.dy;
-    p.dy += 0.08;
-    p.life -= 0.025;
+    p.x += p.dx * dt;
+    p.y += p.dy * dt;
+    p.dy += 0.08 * dt;
+    p.life -= 0.025 * dt;
 
     if (p.life <= 0) {
       particles.splice(i, 1);

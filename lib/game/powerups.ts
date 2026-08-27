@@ -1,18 +1,18 @@
 import { PowerUp, PowerUpType } from './types';
 
-const POWERUP_TYPES: PowerUpType[] = ['wide', 'multi', 'slow', 'life', 'sticky', 'laser', 'fireball', 'magnet', 'score2x'];
+const POWERUP_TYPES: PowerUpType[] = ['wide', 'slow', 'life', 'laser', 'fireball', 'magnet', 'score2x'];
 const POWERUP_SIZE = 28;
 
 const POWERUP_THEME: Record<PowerUpType, { color: string; glow: string; icon: string }> = {
   wide:     { color: '#3B82F6', glow: '#60A5FA', icon: '↔' },
-  multi:    { color: '#8B5CF6', glow: '#A78BFA', icon: '✦' },
   slow:     { color: '#06B6D4', glow: '#22D3EE', icon: '◎' },
   life:     { color: '#EF4444', glow: '#F87171', icon: '♥' },
-  sticky:   { color: '#22C55E', glow: '#4ADE80', icon: '▼' },
   laser:    { color: '#EC4899', glow: '#F472B6', icon: '⚡' },
   fireball: { color: '#F97316', glow: '#FB923C', icon: '🔥' },
   magnet:   { color: '#6366F1', glow: '#818CF8', icon: '◎' },
   score2x:  { color: '#EAB308', glow: '#FACC15', icon: '×2' },
+  multi:    { color: '#8B5CF6', glow: '#A78BFA', icon: '✦' },
+  sticky:   { color: '#22C55E', glow: '#4ADE80', icon: '▼' },
 };
 
 export function maybeSpawnPowerUp(x: number, y: number, chance: number): PowerUp | null {
@@ -30,10 +30,10 @@ export function maybeSpawnPowerUp(x: number, y: number, chance: number): PowerUp
   };
 }
 
-export function updatePowerUps(powerups: PowerUp[], canvasHeight: number): void {
+export function updatePowerUps(powerups: PowerUp[], canvasHeight: number, dt: number): void {
   for (let i = powerups.length - 1; i >= 0; i--) {
     const p = powerups[i];
-    p.y += p.dy;
+    p.y += p.dy * dt;
     if (p.y > canvasHeight) {
       powerups.splice(i, 1);
     }

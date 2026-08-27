@@ -145,4 +145,5 @@ export interface GameData {
   endlessWave: number;
   backgroundStars: BackgroundStar[];
   bgTime: number;
+  lastTime: number;
 }
