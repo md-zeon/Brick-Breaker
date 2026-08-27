@@ -668,7 +668,13 @@ export function updateGame(data: GameData, mouseX: number): void {
   }
 
   if (ballPaddleCollision(data.ball, data.paddle)) {
-    bounceOffPaddle(data.ball, data.paddle);
+    if (data.activePowerUp === 'magnet') {
+      data.ball.stuck = true;
+      data.ball.dx = 0;
+      data.ball.dy = 0;
+    } else {
+      bounceOffPaddle(data.ball, data.paddle);
+    }
     data.combo = 0;
     playBounce();
   }
@@ -686,13 +692,24 @@ export function updateGame(data: GameData, mouseX: number): void {
     if (collision.hit) {
       brick.hitFlash = 1;
       brick.hits--;
+
+      // Fireball: no bounce, pass through
+      if (data.activePowerUp !== 'fireball') {
+        data.ball.x += collision.normal.x * collision.penetration;
+        data.ball.y += collision.normal.y * collision.penetration;
+        const dot = data.ball.dx * collision.normal.x + data.ball.dy * collision.normal.y;
+        data.ball.dx -= 2 * dot * collision.normal.x;
+        data.ball.dy -= 2 * dot * collision.normal.y;
+      }
+
       if (brick.hits === 0) {
         data.combo++;
         data.comboTimer = COMBO_TIMEOUT;
         if (data.combo > data.maxCombo) data.maxCombo = data.combo;
 
         const comboMultiplier = Math.min(1 + (data.combo - 1) * 0.25, 4);
-        data.score += Math.floor(brick.points * comboMultiplier);
+        const scoreMultiplier = data.activePowerUp === 'score2x' ? 2 : 1;
+        data.score += Math.floor(brick.points * comboMultiplier * scoreMultiplier);
 
         if (data.combo > 1) {
           playCombo(data.combo);
@@ -787,6 +804,14 @@ function applyPowerUp(data: GameData, type: PowerUpType): void {
       data.activePowerUp = null;
       data.powerUpTimer = 0;
       break;
+    case 'fireball':
+      data.ball.dx *= 1.15;
+      data.ball.dy *= 1.15;
+      break;
+    case 'magnet':
+      break;
+    case 'score2x':
+      break;
   }
 }
 
@@ -795,6 +820,10 @@ function removePowerUp(data: GameData): void {
     data.paddle.width = 100;
   }
   if (data.activePowerUp === 'slow') {
+    const level = LEVELS[data.level];
+    if (level) data.ball.speed = level.ballSpeed;
+  }
+  if (data.activePowerUp === 'fireball') {
     const level = LEVELS[data.level];
     if (level) data.ball.speed = level.ballSpeed;
   }
@@ -1158,13 +1187,30 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
     ctx.fillRect(paddle.x + paddle.width - 10, paddle.y - 2, 6, 4);
   }
 
-  ctx.shadowColor = COLORS.ball;
-  ctx.shadowBlur = 12;
-  ctx.fillStyle = COLORS.ball;
-  ctx.beginPath();
-  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
+  // Ball rendering
+  if (data.activePowerUp === 'fireball') {
+    ctx.shadowColor = '#FF6600';
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = '#FF4400';
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius + 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowColor = '#FFAA00';
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = '#FFCC00';
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  } else {
+    ctx.shadowColor = COLORS.ball;
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = COLORS.ball;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
 
   for (const laser of lasers) {
     ctx.fillStyle = COLORS.laser;
@@ -1182,7 +1228,7 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
   ctx.globalAlpha = 1;
 
   for (const p of powerups) {
-    drawPowerUp(ctx, p);
+    drawPowerUp(ctx, p, data.bgTime);
   }
 
   if (data.combo > 1) {
@@ -1192,6 +1238,16 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
     ctx.textAlign = 'center';
     ctx.fillText(`COMBO x${data.combo}`, canvas.width / 2, canvas.height / 2 + 40);
     ctx.globalAlpha = 1;
+  }
+
+  if (data.activePowerUp === 'score2x') {
+    ctx.fillStyle = '#EAB308';
+    ctx.shadowColor = '#EAB308';
+    ctx.shadowBlur = 6;
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('SCORE ×2', canvas.width / 2, canvas.height / 2 + 60);
+    ctx.shadowBlur = 0;
   }
 
   if (data.state === 'endless') {

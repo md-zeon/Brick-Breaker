@@ -88,7 +88,7 @@ export interface PowerUp {
   active: boolean;
 }
 
-export type PowerUpType = 'wide' | 'multi' | 'slow' | 'life' | 'sticky' | 'laser';
+export type PowerUpType = 'wide' | 'multi' | 'slow' | 'life' | 'sticky' | 'laser' | 'fireball' | 'magnet' | 'score2x';
 
 export type GameState = 'menu' | 'playing' | 'paused' | 'gameover' | 'levelcomplete' | 'levelselect' | 'endless';
 
