@@ -6,11 +6,12 @@ import { LEVELS } from '@/lib/game/levels';
 interface LevelSelectProps {
   onSelect: (level: number) => void;
   onBack: () => void;
+  maxUnlockedLevel: number;
 }
 
 const PAGE_SIZE = 50;
 
-export default function LevelSelect({ onSelect, onBack }: LevelSelectProps) {
+export default function LevelSelect({ onSelect, onBack, maxUnlockedLevel }: LevelSelectProps) {
   const [page, setPage] = useState(0);
   const start = page * PAGE_SIZE;
   const end = Math.min(start + PAGE_SIZE, LEVELS.length);
@@ -45,20 +46,30 @@ export default function LevelSelect({ onSelect, onBack }: LevelSelectProps) {
 
         <div className="grid grid-cols-10 gap-1.5 mb-4 max-h-[340px] overflow-y-auto">
           {visible.map((lvl, i) => {
-            const num = start + i + 1;
+            const idx = start + i;
+            const num = idx + 1;
             const isBoss = lvl.isBoss;
+            const isLocked = idx > maxUnlockedLevel;
+            const isCurrent = idx === maxUnlockedLevel;
             return (
               <button
-                key={start + i}
-                onClick={() => onSelect(start + i)}
+                key={idx}
+                onClick={() => !isLocked && onSelect(idx)}
+                disabled={isLocked}
                 className={`w-11 h-11 font-bold rounded-lg transition-colors text-xs ${
-                  isBoss
-                    ? 'bg-red-700 hover:bg-red-600 text-white border border-red-400'
-                    : 'bg-gray-700 hover:bg-purple-600 text-white'
+                  isLocked
+                    ? 'bg-gray-900 text-gray-600 cursor-not-allowed border border-gray-800'
+                    : isCurrent
+                      ? isBoss
+                        ? 'bg-red-600 hover:bg-red-500 text-white border-2 border-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.4)]'
+                        : 'bg-purple-600 hover:bg-purple-500 text-white border-2 border-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.4)]'
+                      : isBoss
+                        ? 'bg-red-700 hover:bg-red-600 text-white border border-red-400'
+                        : 'bg-gray-700 hover:bg-purple-600 text-white'
                 }`}
-                title={lvl.name}
+                title={isLocked ? 'Locked' : lvl.name}
               >
-                {num}
+                {isLocked ? '🔒' : num}
               </button>
             );
           })}

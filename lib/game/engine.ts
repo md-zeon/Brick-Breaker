@@ -9,6 +9,7 @@ import { maybeSpawnPowerUp, updatePowerUps, drawPowerUp } from './powerups';
 import { playHit, playBreak, playBounce, playPowerUp, playLoseLife, playLevelComplete, playGameOver, playCombo } from './audio';
 
 const HIGH_SCORE_KEY = 'brick-breaker-highscore';
+const UNLOCKED_LEVEL_KEY = 'brick-breaker-unlocked-level';
 const MAX_TRAIL = 12;
 const COMBO_TIMEOUT = 90;
 const LASER_SPEED = 8;
@@ -251,8 +252,10 @@ function createBoss(levelIndex: number, canvasWidth: number, canvasHeight: numbe
 
 export function createGameData(canvasWidth: number, canvasHeight: number): GameData {
   let highScore = 0;
+  let maxUnlockedLevel = 0;
   try {
     highScore = parseInt(localStorage.getItem(HIGH_SCORE_KEY) || '0', 10);
+    maxUnlockedLevel = parseInt(localStorage.getItem(UNLOCKED_LEVEL_KEY) || '0', 10);
   } catch {}
 
   return {
@@ -270,6 +273,7 @@ export function createGameData(canvasWidth: number, canvasHeight: number): GameD
     level: 0,
     state: 'menu',
     highScore,
+    maxUnlockedLevel,
     activePowerUp: null,
     powerUpTimer: 0,
     combo: 0,
@@ -614,6 +618,7 @@ function updateBoss(data: GameData): void {
         data.state = 'levelcomplete';
         playLevelComplete();
         updateHighScore(data);
+        unlockLevel(data, data.level);
       }
     }
   }
@@ -777,6 +782,7 @@ export function updateGame(data: GameData, mouseX: number): void {
       data.state = 'levelcomplete';
       playLevelComplete();
       updateHighScore(data);
+      unlockLevel(data, data.level);
     }
   }
 }
@@ -836,6 +842,16 @@ function updateHighScore(data: GameData): void {
     data.highScore = data.score;
     try {
       localStorage.setItem(HIGH_SCORE_KEY, String(data.highScore));
+    } catch {}
+  }
+}
+
+function unlockLevel(data: GameData, level: number): void {
+  const next = level + 1;
+  if (next < LEVELS.length && next > data.maxUnlockedLevel) {
+    data.maxUnlockedLevel = next;
+    try {
+      localStorage.setItem(UNLOCKED_LEVEL_KEY, String(next));
     } catch {}
   }
 }

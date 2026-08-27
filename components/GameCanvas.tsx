@@ -33,6 +33,7 @@ export default function GameCanvas() {
   const [lives, setLives] = useState(3);
   const [level, setLevel] = useState(0);
   const [highScore, setHighScore] = useState(0);
+  const [maxUnlockedLevel, setMaxUnlockedLevel] = useState(0);
   const [endlessWave, setEndlessWave] = useState(0);
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export default function GameCanvas() {
     gameDataRef.current = createGameData(CANVAS_WIDTH, CANVAS_HEIGHT);
     setState(gameDataRef.current.state);
     setHighScore(gameDataRef.current.highScore);
+    setMaxUnlockedLevel(gameDataRef.current.maxUnlockedLevel);
 
     const syncUI = (data: GameData) => {
       setState(data.state);
@@ -52,6 +54,7 @@ export default function GameCanvas() {
       setLives(data.lives);
       setLevel(data.level);
       setHighScore(data.highScore);
+      setMaxUnlockedLevel(data.maxUnlockedLevel);
       setEndlessWave(data.endlessWave);
     };
 
@@ -203,6 +206,7 @@ export default function GameCanvas() {
             if (data) data.state = 'menu';
             setState('menu');
           }}
+          maxUnlockedLevel={maxUnlockedLevel}
         />
       )}
 
