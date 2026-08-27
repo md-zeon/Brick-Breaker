@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { GameData } from '@/lib/game/types';
 import {
   createGameData,
@@ -23,10 +23,13 @@ const CANVAS_HEIGHT = 520;
 
 export default function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const gameDataRef = useRef<GameData | null>(null);
   const animFrameRef = useRef<number>(0);
   const mouseXRef = useRef<number>(CANVAS_WIDTH / 2);
   const keysRef = useRef({ left: false, right: false });
+  const touchStartXRef = useRef<number | null>(null);
+  const touchPaddleXRef = useRef<number>(CANVAS_WIDTH / 2);
 
   const [state, setState] = useState<GameData['state']>('menu');
   const [score, setScore] = useState(0);
@@ -35,6 +38,24 @@ export default function GameCanvas() {
   const [highScore, setHighScore] = useState(0);
   const [maxUnlockedLevel, setMaxUnlockedLevel] = useState(0);
   const [endlessWave, setEndlessWave] = useState(0);
+  const [scale, setScale] = useState(1);
+
+  const updateScale = useCallback(() => {
+    if (!containerRef.current) return;
+    const parent = containerRef.current.parentElement;
+    if (!parent) return;
+    const availW = parent.clientWidth - 32;
+    const availH = parent.clientHeight - 32;
+    const sx = availW / CANVAS_WIDTH;
+    const sy = availH / CANVAS_HEIGHT;
+    setScale(Math.min(sx, sy, 1));
+  }, []);
+
+  useEffect(() => {
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, [updateScale]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -90,10 +111,50 @@ export default function GameCanvas() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const handlePointerMove = (e: PointerEvent) => {
+    const getCanvasX = (clientX: number) => {
       const rect = canvas.getBoundingClientRect();
-      const scaleX = CANVAS_WIDTH / rect.width;
-      mouseXRef.current = (e.clientX - rect.left) * scaleX;
+      return ((clientX - rect.left) / rect.width) * CANVAS_WIDTH;
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
+      mouseXRef.current = getCanvasX(e.clientX);
+    };
+
+    const handlePointerDown = (e: PointerEvent) => {
+      const data = gameDataRef.current;
+      if (!data) return;
+
+      if (e.pointerType === 'touch') {
+        const canvasX = getCanvasX(e.clientX);
+        touchStartXRef.current = canvasX;
+        touchPaddleXRef.current = mouseXRef.current;
+      }
+
+      if ((data.state === 'playing' || data.state === 'endless') && data.ball.stuck) {
+        launchBall(data.ball);
+      }
+    };
+
+    const handlePointerUp = () => {
+      touchStartXRef.current = null;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      if (!touch) return;
+
+      const canvasX = getCanvasX(touch.clientX);
+
+      if (touchStartXRef.current !== null) {
+        const dx = canvasX - touchStartXRef.current;
+        const newX = touchPaddleXRef.current + dx;
+        mouseXRef.current = Math.max(0, Math.min(CANVAS_WIDTH, newX));
+      } else {
+        touchStartXRef.current = canvasX;
+        touchPaddleXRef.current = mouseXRef.current;
+      }
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -125,22 +186,18 @@ export default function GameCanvas() {
       if (e.code === 'ArrowRight' || e.code === 'KeyD') keysRef.current.right = false;
     };
 
-    const handlePointerDown = () => {
-      const data = gameDataRef.current;
-      if (!data) return;
-      if ((data.state === 'playing' || data.state === 'endless') && data.ball.stuck) {
-        launchBall(data.ball);
-      }
-    };
-
-    window.addEventListener('pointermove', handlePointerMove);
+    canvas.addEventListener('pointermove', handlePointerMove);
     canvas.addEventListener('pointerdown', handlePointerDown);
+    canvas.addEventListener('pointerup', handlePointerUp);
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
     return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
+      canvas.removeEventListener('pointermove', handlePointerMove);
       canvas.removeEventListener('pointerdown', handlePointerDown);
+      canvas.removeEventListener('pointerup', handlePointerUp);
+      canvas.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
@@ -184,11 +241,15 @@ export default function GameCanvas() {
   };
 
   return (
-    <div className="relative select-none" style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}>
+    <div ref={containerRef} className="relative select-none" style={{ width: CANVAS_WIDTH * scale, height: CANVAS_HEIGHT * scale }}>
       <canvas
         ref={canvasRef}
-        className="rounded-lg"
-        style={{ background: '#0A090F', width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}
+        className="rounded-lg touch-none"
+        style={{
+          background: '#0A090F',
+          width: CANVAS_WIDTH * scale,
+          height: CANVAS_HEIGHT * scale,
+        }}
       />
 
       {state === 'menu' && (
@@ -227,8 +288,8 @@ export default function GameCanvas() {
 
       {state === 'paused' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-lg">
-          <h2 className="text-3xl font-bold text-white mb-6">PAUSED</h2>
-          <p className="text-gray-300 text-sm mb-4">Press P or ESC to resume · M to quit</p>
+          <h2 className="text-3xl font-bold text-white mb-2">PAUSED</h2>
+          <p className="text-gray-400 text-xs mb-6">Press P or ESC to resume</p>
           <button
             onClick={() => {
               const data = gameDataRef.current;
@@ -238,9 +299,9 @@ export default function GameCanvas() {
                 setState(data.state);
               }
             }}
-            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors mb-3"
+            className="block w-44 mx-auto mb-3 px-6 py-3 bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-600/20"
           >
-            Resume
+            RESUME
           </button>
           <button
             onClick={() => {
@@ -250,15 +311,20 @@ export default function GameCanvas() {
                 setState('menu');
               }
             }}
-            className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+            className="block w-44 mx-auto px-6 py-3 bg-gray-700 hover:bg-gray-600 active:bg-gray-800 text-white font-semibold rounded-lg transition-all"
           >
-            Quit to Menu
+            QUIT TO MENU
           </button>
         </div>
       )}
 
       {state === 'gameover' && (
-        <GameOverScreen score={score} highScore={highScore} onRestart={handleRestart} />
+        <GameOverScreen
+          score={score}
+          highScore={highScore}
+          onRestart={handleRestart}
+          onMenu={handleRestart}
+        />
       )}
 
       {state === 'levelcomplete' && (

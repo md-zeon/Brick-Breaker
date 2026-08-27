@@ -12,7 +12,8 @@ interface LevelSelectProps {
 const PAGE_SIZE = 50;
 
 export default function LevelSelect({ onSelect, onBack, maxUnlockedLevel }: LevelSelectProps) {
-  const [page, setPage] = useState(0);
+  const initialPage = Math.floor(maxUnlockedLevel / PAGE_SIZE);
+  const [page, setPage] = useState(initialPage);
   const start = page * PAGE_SIZE;
   const end = Math.min(start + PAGE_SIZE, LEVELS.length);
   const visible = LEVELS.slice(start, end);
@@ -56,13 +57,13 @@ export default function LevelSelect({ onSelect, onBack, maxUnlockedLevel }: Leve
                 key={idx}
                 onClick={() => !isLocked && onSelect(idx)}
                 disabled={isLocked}
-                className={`w-11 h-11 font-bold rounded-lg transition-colors text-xs ${
+                className={`w-11 h-11 font-bold rounded-lg transition-all text-xs ${
                   isLocked
                     ? 'bg-gray-900 text-gray-600 cursor-not-allowed border border-gray-800'
                     : isCurrent
                       ? isBoss
-                        ? 'bg-red-600 hover:bg-red-500 text-white border-2 border-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.4)]'
-                        : 'bg-purple-600 hover:bg-purple-500 text-white border-2 border-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.4)]'
+                        ? 'bg-red-600 hover:bg-red-500 text-white border-2 border-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.4)] scale-110'
+                        : 'bg-purple-600 hover:bg-purple-500 text-white border-2 border-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.4)] scale-110'
                       : isBoss
                         ? 'bg-red-700 hover:bg-red-600 text-white border border-red-400'
                         : 'bg-gray-700 hover:bg-purple-600 text-white'

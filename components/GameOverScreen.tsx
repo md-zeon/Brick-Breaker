@@ -4,9 +4,10 @@ interface GameOverScreenProps {
   score: number;
   highScore: number;
   onRestart: () => void;
+  onMenu: () => void;
 }
 
-export default function GameOverScreen({ score, highScore, onRestart }: GameOverScreenProps) {
+export default function GameOverScreen({ score, highScore, onRestart, onMenu }: GameOverScreenProps) {
   const isNewHighScore = score >= highScore && score > 0;
 
   return (
@@ -27,9 +28,15 @@ export default function GameOverScreen({ score, highScore, onRestart }: GameOver
 
         <button
           onClick={onRestart}
-          className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
+          className="block w-44 mx-auto mb-3 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
         >
           RESTART
+        </button>
+        <button
+          onClick={onMenu}
+          className="block w-44 mx-auto px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors"
+        >
+          BACK TO MENU
         </button>
       </div>
     </div>
