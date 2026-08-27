@@ -1,7 +1,7 @@
 import { PowerUp, PowerUpType } from './types';
 
 const POWERUP_TYPES: PowerUpType[] = ['wide', 'multi', 'slow', 'life', 'sticky', 'laser', 'fireball', 'magnet', 'score2x'];
-const POWERUP_SIZE = 18;
+const POWERUP_SIZE = 28;
 
 const POWERUP_THEME: Record<PowerUpType, { color: string; glow: string; icon: string }> = {
   wide:     { color: '#3B82F6', glow: '#60A5FA', icon: '↔' },
@@ -80,7 +80,7 @@ export function drawPowerUp(ctx: CanvasRenderingContext2D, powerup: PowerUp, tim
   // Icon
   ctx.globalAlpha = 1;
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = `bold ${powerup.type === 'score2x' ? '8px' : '11px'} monospace`;
+  ctx.font = `bold ${powerup.type === 'score2x' ? '11px' : '16px'} monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(theme.icon, cx, cy + 1);

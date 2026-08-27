@@ -45,21 +45,10 @@ export function circleRectCollision(
 }
 
 export function ballBrickCollision(ball: Ball, brick: Brick): CollisionResult {
-  const result = circleRectCollision(
+  return circleRectCollision(
     ball.x, ball.y, ball.radius,
     brick.x, brick.y, brick.width, brick.height
   );
-
-  if (result.hit) {
-    ball.x += result.normal.x * result.penetration;
-    ball.y += result.normal.y * result.penetration;
-
-    const dot = ball.dx * result.normal.x + ball.dy * result.normal.y;
-    ball.dx -= 2 * dot * result.normal.x;
-    ball.dy -= 2 * dot * result.normal.y;
-  }
-
-  return result;
 }
 
 export function ballPaddleCollision(ball: Ball, paddle: Paddle): boolean {
