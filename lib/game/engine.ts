@@ -294,7 +294,9 @@ export function createGameData(canvasWidth: number, canvasHeight: number): GameD
     highScore,
     maxUnlockedLevel,
     activePowerUp: null,
+    activePowerUp2: null,
     powerUpTimer: 0,
+    powerUpTimer2: 0,
     combo: 0,
     maxCombo: 0,
     comboTimer: 0,
@@ -321,8 +323,7 @@ export function startGame(data: GameData): void {
   data.trails = [];
   data.lasers = [];
   data.boss = null;
-  data.activePowerUp = null;
-  data.powerUpTimer = 0;
+  resetPowerUps(data);
   data.ball.speed = LEVELS[0].ballSpeed;
   data.combo = 0;
   data.maxCombo = 0;
@@ -352,8 +353,7 @@ export function startEndless(data: GameData): void {
   data.trails = [];
   data.lasers = [];
   data.boss = null;
-  data.activePowerUp = null;
-  data.powerUpTimer = 0;
+  resetPowerUps(data);
   data.combo = 0;
   data.maxCombo = 0;
   data.comboTimer = 0;
@@ -427,8 +427,7 @@ export function selectLevel(data: GameData, level: number): void {
   data.trails = [];
   data.lasers = [];
   data.boss = null;
-  data.activePowerUp = null;
-  data.powerUpTimer = 0;
+  resetPowerUps(data);
   data.state = 'playing';
   data.combo = 0;
   data.comboTimer = 0;
@@ -455,6 +454,17 @@ function pushParticles(data: GameData, newParticles: Particle[]): void {
     const excess = data.particles.length - MAX_TOTAL_PARTICLES;
     data.particles.splice(0, excess);
   }
+}
+
+function hasPowerUp(data: GameData, type: PowerUpType): boolean {
+  return data.activePowerUp === type || data.activePowerUp2 === type;
+}
+
+function resetPowerUps(data: GameData): void {
+  data.activePowerUp = null;
+  data.activePowerUp2 = null;
+  data.powerUpTimer = 0;
+  data.powerUpTimer2 = 0;
 }
 
 function updateShake(data: GameData, dt: number): void {
@@ -682,7 +692,7 @@ export function updateGame(data: GameData, mouseX: number): void {
   updateTrails(data, dt);
   updateShake(data, dt);
 
-  if (data.activePowerUp === 'laser' && data.ball.stuck === false) {
+  if (hasPowerUp(data, 'laser') && data.ball.stuck === false) {
     fireLaser(data);
   }
   updateLasers(data, dt);
@@ -714,7 +724,7 @@ export function updateGame(data: GameData, mouseX: number): void {
   }
 
   if (ballPaddleCollision(data.ball, data.paddle)) {
-    if (data.activePowerUp === 'magnet') {
+    if (hasPowerUp(data, 'magnet')) {
       data.ball.stuck = true;
       data.ball.dx = 0;
       data.ball.dy = 0;
@@ -740,7 +750,7 @@ export function updateGame(data: GameData, mouseX: number): void {
       brick.hits--;
 
       // Fireball: no bounce, pass through
-      if (data.activePowerUp !== 'fireball') {
+      if (!hasPowerUp(data, 'fireball')) {
         data.ball.x += collision.normal.x * collision.penetration;
         data.ball.y += collision.normal.y * collision.penetration;
         const dot = data.ball.dx * collision.normal.x + data.ball.dy * collision.normal.y;
@@ -754,7 +764,7 @@ export function updateGame(data: GameData, mouseX: number): void {
         if (data.combo > data.maxCombo) data.maxCombo = data.combo;
 
         const comboMultiplier = Math.min(1 + (data.combo - 1) * 0.25, 4);
-        const scoreMultiplier = data.activePowerUp === 'score2x' ? 2 : 1;
+        const scoreMultiplier = hasPowerUp(data, 'score2x') ? 2 : 1;
         data.score += Math.floor(brick.points * comboMultiplier * scoreMultiplier);
 
         if (data.combo > 1) {
@@ -807,14 +817,19 @@ export function updateGame(data: GameData, mouseX: number): void {
     ) {
       applyPowerUp(data, p.type);
       data.powerups.splice(i, 1);
-      playPowerUp();
     }
   }
 
   if (data.activePowerUp && data.powerUpTimer > 0) {
     data.powerUpTimer -= dt;
     if (data.powerUpTimer <= 0) {
-      removePowerUp(data);
+      removePowerUpSlot(data, 0);
+    }
+  }
+  if (data.activePowerUp2 && data.powerUpTimer2 > 0) {
+    data.powerUpTimer2 -= dt;
+    if (data.powerUpTimer2 <= 0) {
+      removePowerUpSlot(data, 1);
     }
   }
 
@@ -832,9 +847,62 @@ export function updateGame(data: GameData, mouseX: number): void {
 }
 
 function applyPowerUp(data: GameData, type: PowerUpType): void {
-  removePowerUp(data);
-  data.activePowerUp = type;
-  data.powerUpTimer = 600;
+  const TIMER = 600;
+
+  if (type === 'life') {
+    data.lives++;
+    playPowerUp();
+    return;
+  }
+
+  if (type === 'wide' && hasPowerUp(data, 'wide')) {
+    data.powerUpTimer = TIMER;
+    data.powerUpTimer2 = TIMER;
+    playPowerUp();
+    return;
+  }
+  if (type === 'slow' && hasPowerUp(data, 'slow')) {
+    data.powerUpTimer = TIMER;
+    data.powerUpTimer2 = TIMER;
+    playPowerUp();
+    return;
+  }
+  if (type === 'fireball' && hasPowerUp(data, 'fireball')) {
+    data.powerUpTimer = TIMER;
+    data.powerUpTimer2 = TIMER;
+    playPowerUp();
+    return;
+  }
+  if (type === 'magnet' && hasPowerUp(data, 'magnet')) {
+    data.powerUpTimer = TIMER;
+    data.powerUpTimer2 = TIMER;
+    playPowerUp();
+    return;
+  }
+  if (type === 'score2x' && hasPowerUp(data, 'score2x')) {
+    data.powerUpTimer = TIMER;
+    data.powerUpTimer2 = TIMER;
+    playPowerUp();
+    return;
+  }
+
+  if (!data.activePowerUp) {
+    data.activePowerUp = type;
+    data.powerUpTimer = TIMER;
+  } else if (!data.activePowerUp2) {
+    data.activePowerUp2 = type;
+    data.powerUpTimer2 = TIMER;
+  } else {
+    if (data.powerUpTimer <= data.powerUpTimer2) {
+      removePowerUpSlot(data, 0);
+      data.activePowerUp = type;
+      data.powerUpTimer = TIMER;
+    } else {
+      removePowerUpSlot(data, 1);
+      data.activePowerUp2 = type;
+      data.powerUpTimer2 = TIMER;
+    }
+  }
 
   switch (type) {
     case 'wide':
@@ -845,27 +913,28 @@ function applyPowerUp(data: GameData, type: PowerUpType): void {
       data.ball.dx *= 0.6;
       data.ball.dy *= 0.6;
       break;
-    case 'life':
-      data.lives++;
-      data.activePowerUp = null;
-      data.powerUpTimer = 0;
-      break;
     case 'fireball':
       data.ball.dx *= 1.15;
       data.ball.dy *= 1.15;
       break;
     case 'magnet':
-      break;
     case 'score2x':
       break;
   }
+
+  playPowerUp();
 }
 
-function removePowerUp(data: GameData): void {
-  if (data.activePowerUp === 'wide') {
+function removePowerUpSlot(data: GameData, slot: 0 | 1): void {
+  const type = slot === 0 ? data.activePowerUp : data.activePowerUp2;
+  if (!type) return;
+
+  const otherType = slot === 0 ? data.activePowerUp2 : data.activePowerUp;
+
+  if (type === 'wide' && otherType !== 'wide') {
     data.paddle.width = 100;
   }
-  if (data.activePowerUp === 'slow' || data.activePowerUp === 'fireball') {
+  if ((type === 'slow' || type === 'fireball') && otherType !== 'slow' && otherType !== 'fireball') {
     let targetSpeed: number;
     if (data.state === 'endless') {
       targetSpeed = 5 + data.endlessWave * 0.3;
@@ -883,8 +952,19 @@ function removePowerUp(data: GameData): void {
       }
     }
   }
-  data.activePowerUp = null;
-  data.powerUpTimer = 0;
+
+  if (slot === 0) {
+    data.activePowerUp = null;
+    data.powerUpTimer = 0;
+  } else {
+    data.activePowerUp2 = null;
+    data.powerUpTimer2 = 0;
+  }
+}
+
+function removePowerUp(data: GameData): void {
+  removePowerUpSlot(data, 0);
+  removePowerUpSlot(data, 1);
 }
 
 function updateHighScore(data: GameData): void {
@@ -1239,14 +1319,14 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
   ctx.roundRect(paddle.x, paddle.y, paddle.width, paddle.height, 7);
   ctx.fill();
 
-  if (data.activePowerUp === 'laser') {
+  if (hasPowerUp(data, 'laser')) {
     ctx.fillStyle = COLORS.laser;
     ctx.fillRect(paddle.x + 4, paddle.y - 2, 6, 4);
     ctx.fillRect(paddle.x + paddle.width - 10, paddle.y - 2, 6, 4);
   }
 
   // Ball rendering
-  if (data.activePowerUp === 'fireball') {
+  if (hasPowerUp(data, 'fireball')) {
     setShadow(ctx, data.useShadows, '#FF6600', 16);
     ctx.fillStyle = '#FF4400';
     ctx.beginPath();
@@ -1294,13 +1374,40 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
     ctx.globalAlpha = 1;
   }
 
-  if (data.activePowerUp === 'score2x') {
+  if (hasPowerUp(data, 'score2x')) {
     ctx.fillStyle = '#EAB308';
     setShadow(ctx, data.useShadows, '#EAB308', 6);
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('SCORE ×2', canvas.width / 2, canvas.height / 2 + 60);
     clearShadow(ctx, data.useShadows);
+  }
+
+  const POWERUP_ICONS: Record<string, string> = {
+    wide: '↔', slow: '◎', laser: '⚡', fireball: '🔥', magnet: '◎', score2x: '×2',
+  };
+  const POWERUP_COLORS: Record<string, string> = {
+    wide: '#3B82F6', slow: '#06B6D4', laser: '#EC4899', fireball: '#F97316', magnet: '#6366F1', score2x: '#EAB308',
+  };
+  let indicatorY = canvas.height - 20;
+  for (const [i, pu] of [data.activePowerUp, data.activePowerUp2].entries()) {
+    if (!pu) continue;
+    const timer = i === 0 ? data.powerUpTimer : data.powerUpTimer2;
+    const maxTimer = 600;
+    const pct = Math.max(0, timer / maxTimer);
+    const color = POWERUP_COLORS[pu] || '#FFFFFF';
+    const icon = POWERUP_ICONS[pu] || '?';
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.8;
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(icon + ' ' + pu.toUpperCase(), 8, indicatorY);
+    ctx.fillStyle = '#333333';
+    ctx.fillRect(8, indicatorY + 3, 80, 3);
+    ctx.fillStyle = color;
+    ctx.fillRect(8, indicatorY + 3, 80 * pct, 3);
+    ctx.globalAlpha = 1;
+    indicatorY -= 16;
   }
 
   ctx.restore();

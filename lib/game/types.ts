@@ -134,7 +134,9 @@ export interface GameData {
   highScore: number;
   maxUnlockedLevel: number;
   activePowerUp: PowerUpType | null;
+  activePowerUp2: PowerUpType | null;
   powerUpTimer: number;
+  powerUpTimer2: number;
   combo: number;
   maxCombo: number;
   comboTimer: number;
