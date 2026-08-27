@@ -28,36 +28,224 @@ function createBackgroundStars(width: number, height: number): BackgroundStar[] 
   return stars;
 }
 
+interface BossConfig {
+  name: string;
+  bodyColor: string;
+  accentColor: string;
+  eyeColor: string;
+  style: number;
+}
+
+const BOSS_CONFIGS: BossConfig[] = [
+  { name: 'Warden', bodyColor: '#4A4A5A', accentColor: '#8B8BA0', eyeColor: '#FF0000', style: 0 },
+  { name: 'Pendulum', bodyColor: '#2D1B4E', accentColor: '#DAA520', eyeColor: '#FFFFFF', style: 1 },
+  { name: 'Orbiter', bodyColor: '#1A3A5C', accentColor: '#00D4FF', eyeColor: '#FFE44D', style: 2 },
+  { name: 'Phantom', bodyColor: '#1A3322', accentColor: '#44FF88', eyeColor: '#FFFFFF', style: 3 },
+  { name: 'Titan', bodyColor: '#5C1A1A', accentColor: '#FF6600', eyeColor: '#FFDD00', style: 4 },
+  { name: 'Colossus', bodyColor: '#3A3A3A', accentColor: '#FFD700', eyeColor: '#4488FF', style: 5 },
+  { name: 'Wraith', bodyColor: '#E8E8E8', accentColor: '#888888', eyeColor: '#FF0000', style: 6 },
+  { name: 'Overlord', bodyColor: '#660022', accentColor: '#FFD700', eyeColor: '#FFAA00', style: 7 },
+  { name: 'Inferno', bodyColor: '#CC2200', accentColor: '#FF8800', eyeColor: '#FFFFFF', style: 8 },
+  { name: 'Frost', bodyColor: '#0044AA', accentColor: '#AAEEFF', eyeColor: '#00FFFF', style: 9 },
+  { name: 'Guardian', bodyColor: '#555555', accentColor: '#333333', eyeColor: '#00FF44', style: 10 },
+  { name: 'Machina', bodyColor: '#888888', accentColor: '#0066FF', eyeColor: '#FF0000', style: 11 },
+  { name: 'Leviathan', bodyColor: '#0A2A4A', accentColor: '#22AA66', eyeColor: '#FFEE00', style: 12 },
+  { name: 'Overgrowth', bodyColor: '#225522', accentColor: '#884422', eyeColor: '#FF2200', style: 13 },
+  { name: 'Tempest', bodyColor: '#333344', accentColor: '#AAAACC', eyeColor: '#4488FF', style: 14 },
+  { name: 'Abyss', bodyColor: '#2A0A3A', accentColor: '#44FF44', eyeColor: '#FF00FF', style: 15 },
+  { name: 'Sandstorm', bodyColor: '#AA8844', accentColor: '#664422', eyeColor: '#FF0000', style: 16 },
+  { name: 'Monolith', bodyColor: '#0A0A0A', accentColor: '#00FF88', eyeColor: '#FFFFFF', style: 17 },
+  { name: 'Cortex', bodyColor: '#AA4466', accentColor: '#CC2244', eyeColor: '#8800FF', style: 18 },
+  { name: 'Entropy', bodyColor: '#222233', accentColor: '#FF44FF', eyeColor: '#44FFFF', style: 19 },
+];
+
+function createBossSegments(style: number, cx: number, cy: number, tier: number, w: number, h: number, color: string): BossSegment[] {
+  const segs: BossSegment[] = [];
+  const hp = 2 + tier;
+
+  const push = (x: number, y: number, sw: number, sh: number, c?: string) => {
+    segs.push({ x: x - sw / 2, y: y - sh / 2, width: sw, height: sh, hp, color: c || color });
+  };
+
+  switch (style) {
+    case 0: // Warden — 3 horizontal shield bars
+      for (let i = 0; i < 3; i++) push(cx, cy - 30 + i * 30, 120, 18, i === 1 ? '#6B6B80' : color);
+      break;
+    case 1: // Pendulum — V shape
+      push(cx - 60, cy - 10, 50, 16);
+      push(cx + 60, cy - 10, 50, 16);
+      push(cx, cy + 15, 50, 16, '#DAA520');
+      push(cx - 30, cy - 30, 40, 14);
+      push(cx + 30, cy - 30, 40, 14);
+      break;
+    case 2: // Orbiter — ring segments
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+        push(cx + Math.cos(a) * 55, cy + Math.sin(a) * 35, 40, 14, i % 2 === 0 ? color : '#00D4FF');
+      }
+      break;
+    case 3: // Phantom — ghost shape
+      push(cx, cy - 10, 90, 20);
+      push(cx - 35, cy + 10, 50, 16);
+      push(cx + 35, cy + 10, 50, 16);
+      push(cx, cy + 25, 40, 14, '#44FF88');
+      push(cx - 15, cy - 30, 30, 14);
+      push(cx + 15, cy - 30, 30, 14);
+      break;
+    case 4: // Titan — humanoid
+      push(cx, cy - 30, 50, 18); // head
+      push(cx, cy, 70, 22); // torso
+      push(cx - 55, cy - 5, 35, 16, '#FF6600'); // left arm
+      push(cx + 55, cy - 5, 35, 16, '#FF6600'); // right arm
+      push(cx, cy + 25, 40, 16); // waist
+      break;
+    case 5: // Colossus — big block with runes
+      push(cx, cy - 15, 130, 24, '#555555');
+      push(cx, cy + 15, 130, 24, '#444444');
+      push(cx - 50, cy, 20, 20, '#FFD700');
+      push(cx + 50, cy, 20, 20, '#FFD700');
+      break;
+    case 6: // Wraith — thin skeleton
+      push(cx, cy - 30, 40, 12, '#FFFFFF');
+      push(cx - 30, cy - 10, 25, 10, '#CCCCCC');
+      push(cx + 30, cy - 10, 25, 10, '#CCCCCC');
+      push(cx, cy, 35, 12, '#EEEEEE');
+      push(cx - 25, cy + 15, 20, 10, '#AAAAAA');
+      push(cx + 25, cy + 15, 20, 10, '#AAAAAA');
+      push(cx, cy + 28, 30, 12, '#DDDDDD');
+      break;
+    case 7: // Overlord — demon with crown
+      push(cx, cy - 25, 80, 18, '#FFD700'); // crown
+      push(cx - 25, cy - 40, 12, 18, '#FFD700'); // left horn
+      push(cx + 25, cy - 40, 12, 18, '#FFD700'); // right horn
+      push(cx, cy, 90, 24); // face
+      push(cx, cy + 25, 60, 18, '#880033'); // chin
+      break;
+    case 8: // Inferno — flame demon
+      push(cx, cy - 15, 50, 20, '#FF8800');
+      push(cx - 35, cy, 40, 16, '#FF4400');
+      push(cx + 35, cy, 40, 16, '#FF4400');
+      push(cx, cy + 15, 60, 18, '#CC2200');
+      push(cx - 20, cy - 35, 16, 20, '#FFFF00');
+      push(cx + 20, cy - 35, 16, 20, '#FFFF00');
+      push(cx, cy - 40, 12, 16, '#FFFFFF');
+      break;
+    case 9: // Frost — crystal shards
+      push(cx, cy, 100, 22, '#6699CC');
+      push(cx - 45, cy - 20, 30, 30, '#88BBEE');
+      push(cx + 45, cy - 20, 30, 30, '#88BBEE');
+      push(cx, cy - 25, 25, 25, '#AAEEFF');
+      push(cx - 20, cy + 18, 20, 14, '#5588BB');
+      push(cx + 20, cy + 18, 20, 14, '#5588BB');
+      break;
+    case 10: // Guardian — blocky stone
+      push(cx - 40, cy - 15, 35, 20);
+      push(cx, cy - 15, 35, 20);
+      push(cx + 40, cy - 15, 35, 20);
+      push(cx, cy + 10, 100, 20, '#666666');
+      break;
+    case 11: // Machina — robot
+      push(cx, cy - 20, 60, 20, '#AAAAAA');
+      push(cx, cy + 5, 80, 22, '#999999');
+      push(cx - 50, cy + 5, 20, 30, '#777777');
+      push(cx + 50, cy + 5, 20, 30, '#777777');
+      push(cx, cy + 30, 50, 16, '#888888');
+      break;
+    case 12: // Leviathan — serpentine
+      for (let i = 0; i < 5; i++) {
+        const sx = cx - 80 + i * 40;
+        const sy = cy + Math.sin(i * 1.2) * 15;
+        push(sx, sy, 35, 18, i % 2 === 0 ? color : '#33CC77');
+      }
+      break;
+    case 13: // Overgrowth — vine monster
+      push(cx, cy - 10, 70, 20);
+      push(cx - 50, cy - 30, 25, 35, '#44AA44');
+      push(cx + 50, cy - 30, 25, 35, '#44AA44');
+      push(cx - 30, cy + 15, 20, 20, '#664422');
+      push(cx + 30, cy + 15, 20, 20, '#664422');
+      push(cx, cy + 25, 30, 14, '#337733');
+      break;
+    case 14: // Tempest — scattered storm
+      push(cx - 50, cy - 20, 45, 16, '#555566');
+      push(cx + 50, cy - 20, 45, 16, '#555566');
+      push(cx, cy, 60, 18, '#666677');
+      push(cx - 30, cy + 18, 35, 14, '#777788');
+      push(cx + 30, cy + 18, 35, 14, '#777788');
+      break;
+    case 15: // Abyss — tentacle horror
+      push(cx, cy - 10, 80, 22, '#3A1A5A');
+      push(cx - 40, cy + 15, 15, 30, '#44FF44');
+      push(cx - 15, cy + 18, 15, 35, '#33CC33');
+      push(cx + 15, cy + 18, 15, 35, '#33CC33');
+      push(cx + 40, cy + 15, 15, 30, '#44FF44');
+      push(cx, cy - 30, 40, 16, '#2A0A3A');
+      break;
+    case 16: // Sandstorm — worm segments
+      for (let i = 0; i < 6; i++) {
+        const sx = cx - 75 + i * 30;
+        const sy = cy + Math.sin(i * 0.8) * 12;
+        push(sx, sy, 25, 20, i % 2 === 0 ? color : '#CC9944');
+      }
+      break;
+    case 17: // Monolith — alien geometric
+      push(cx, cy - 5, 40, 50);
+      push(cx - 35, cy + 5, 20, 30, '#00FF88');
+      push(cx + 35, cy + 5, 20, 30, '#00FF88');
+      push(cx, cy - 35, 20, 14, '#00CC66');
+      break;
+    case 18: // Cortex — brain
+      push(cx - 20, cy - 15, 45, 20, '#CC6688');
+      push(cx + 20, cy - 15, 45, 20, '#BB5577');
+      push(cx - 25, cy + 10, 40, 18, '#AA4466');
+      push(cx + 25, cy + 10, 40, 18, '#993355');
+      push(cx, cy, 30, 24, '#CC2244');
+      break;
+    case 19: // Entropy — fragmented chaos
+      push(cx - 40, cy - 25, 30, 18, '#FF44FF');
+      push(cx + 40, cy - 25, 30, 18, '#44FFFF');
+      push(cx - 50, cy, 25, 22, '#FFFF44');
+      push(cx + 50, cy, 25, 22, '#FF4444');
+      push(cx, cy - 10, 40, 20, '#44FF44');
+      push(cx - 25, cy + 18, 35, 16, '#FF88FF');
+      push(cx + 25, cy + 18, 35, 16, '#88FFFF');
+      push(cx, cy + 30, 30, 14, '#FFFFFF');
+      break;
+  }
+  return segs;
+}
+
 function createBoss(levelIndex: number, canvasWidth: number, canvasHeight: number): Boss {
   const tier = Math.floor(levelIndex / 5);
-  const segCount = 3 + tier;
-  const segWidth = 60;
-  const segHeight = 20;
-  const totalWidth = segCount * (segWidth + 8);
-  const startX = (canvasWidth - totalWidth) / 2;
-  const segments: BossSegment[] = [];
+  const cfg = BOSS_CONFIGS[tier % BOSS_CONFIGS.length];
+  const cx = canvasWidth / 2;
+  const cy = 90;
 
-  for (let i = 0; i < segCount; i++) {
-    segments.push({
-      x: startX + i * (segWidth + 8),
-      y: 80,
-      width: segWidth,
-      height: segHeight,
-      hp: 2 + tier,
-      color: COLORS.bossSegment,
-    });
+  const segments = createBossSegments(cfg.style, cx, cy, tier, 0, 0, cfg.bodyColor);
+
+  let minX = cx - 60, maxX = cx + 60, minY = cy - 40, maxY = cy + 40;
+  for (const s of segments) {
+    minX = Math.min(minX, s.x);
+    maxX = Math.max(maxX, s.x + s.width);
+    minY = Math.min(minY, s.y);
+    maxY = Math.max(maxY, s.y + s.height);
   }
 
   return {
-    x: canvasWidth / 2 - 40,
-    y: 100,
-    width: 80,
-    height: 30,
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY,
     hp: 5 + tier * 3,
     maxHp: 5 + tier * 3,
-    dx: 1.5 + tier * 0.5,
+    dx: 1.5 + tier * 0.4,
     dy: 0,
     segments,
+    name: cfg.name,
+    bodyColor: cfg.bodyColor,
+    accentColor: cfg.accentColor,
+    eyeColor: cfg.eyeColor,
+    style: cfg.style,
   };
 }
 
@@ -685,34 +873,121 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
   }
 
   if (boss) {
+    const t = data.bgTime;
+    const hpRatio = boss.hp / boss.maxHp;
+    const pulse = 1 + Math.sin(t * 4) * 0.04;
+    const segTier = 2 + Math.floor(data.level / 5);
+
     for (const seg of boss.segments) {
+      ctx.save();
+
+      ctx.shadowColor = boss.accentColor;
+      ctx.shadowBlur = 6 + Math.sin(t * 3 + seg.x * 0.1) * 3;
+
       ctx.fillStyle = seg.color;
       ctx.beginPath();
-      ctx.roundRect(seg.x, seg.y, seg.width, seg.height, 4);
+      ctx.roundRect(seg.x, seg.y, seg.width, seg.height, 3);
       ctx.fill();
 
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.fillRect(seg.x + 4, seg.y + 3, seg.width - 8, 4);
+      ctx.fillStyle = `rgba(255,255,255,0.15)`;
+      ctx.fillRect(seg.x + 3, seg.y + 2, seg.width - 6, 3);
 
-      const hpPct = seg.hp / (2 + Math.floor(data.level / 5));
-      ctx.fillStyle = '#333';
-      ctx.fillRect(seg.x + 4, seg.y + seg.height - 7, seg.width - 8, 4);
-      ctx.fillStyle = '#FF4444';
-      ctx.fillRect(seg.x + 4, seg.y + seg.height - 7, (seg.width - 8) * hpPct, 4);
+      ctx.shadowBlur = 0;
+
+      const hpPct = seg.hp / segTier;
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(seg.x + 3, seg.y + seg.height - 6, seg.width - 6, 4);
+      const hpColor = hpPct > 0.5 ? '#44FF44' : hpPct > 0.25 ? '#FFAA00' : '#FF2200';
+      ctx.fillStyle = hpColor;
+      ctx.fillRect(seg.x + 3, seg.y + seg.height - 6, (seg.width - 6) * hpPct, 4);
+
+      ctx.restore();
     }
 
-    ctx.fillStyle = COLORS.boss;
-    ctx.beginPath();
-    ctx.roundRect(boss.x, boss.y, boss.width, boss.height, 6);
-    ctx.fill();
+    const bodyCx = boss.x + boss.width / 2;
+    const bodyCy = boss.y + boss.height / 2;
 
-    ctx.fillStyle = 'rgba(255,255,255,0.2)';
-    ctx.fillRect(boss.x + 8, boss.y + 5, boss.width - 16, 6);
+    // Body glow aura
+    ctx.save();
+    ctx.globalAlpha = 0.15 + Math.sin(t * 2) * 0.05;
+    const auraGrad = ctx.createRadialGradient(bodyCx, bodyCy, 10, bodyCx, bodyCy, boss.width * 0.7);
+    auraGrad.addColorStop(0, boss.accentColor);
+    auraGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = auraGrad;
+    ctx.fillRect(boss.x - 30, boss.y - 30, boss.width + 60, boss.height + 60);
+    ctx.globalAlpha = 1;
+    ctx.restore();
 
-    ctx.fillStyle = '#333';
-    ctx.fillRect(boss.x + 10, boss.y + boss.height - 10, boss.width - 20, 5);
-    ctx.fillStyle = '#FF0000';
-    ctx.fillRect(boss.x + 10, boss.y + boss.height - 10, (boss.width - 20) * (boss.hp / boss.maxHp), 5);
+    // Eyes
+    const eyeSpacing = Math.max(12, boss.width * 0.18);
+    const eyeY = bodyCy - 2;
+    const eyeSize = 4 + Math.sin(t * 5) * 1;
+
+    for (const ex of [-eyeSpacing, eyeSpacing]) {
+      // Eye white
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.ellipse(bodyCx + ex, eyeY, eyeSize + 3, eyeSize + 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Iris
+      ctx.fillStyle = boss.eyeColor;
+      ctx.shadowColor = boss.eyeColor;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(bodyCx + ex, eyeY, eyeSize, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Pupil
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(bodyCx + ex + Math.sin(t + ex) * 1.5, eyeY, eyeSize * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Spikes along top (style dependent)
+    if (boss.style <= 4 || boss.style === 7 || boss.style === 8 || boss.style === 13) {
+      const spikeCount = 5 + boss.style;
+      for (let i = 0; i < spikeCount; i++) {
+        const sx = boss.x + (i / (spikeCount - 1)) * boss.width;
+        const sH = 8 + Math.sin(t * 3 + i) * 3;
+        ctx.fillStyle = boss.accentColor;
+        ctx.beginPath();
+        ctx.moveTo(sx - 4, boss.y);
+        ctx.lineTo(sx, boss.y - sH);
+        ctx.lineTo(sx + 4, boss.y);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    // Core HP bar
+    ctx.fillStyle = '#111111';
+    ctx.fillRect(bodyCx - 45, boss.y + boss.height + 12, 90, 6);
+    const barColor = hpRatio > 0.5 ? '#FF4444' : hpRatio > 0.25 ? '#FF8800' : '#FF0000';
+    ctx.fillStyle = barColor;
+    ctx.shadowColor = barColor;
+    ctx.shadowBlur = 6;
+    ctx.fillRect(bodyCx - 45, boss.y + boss.height + 12, 90 * hpRatio, 6);
+    ctx.shadowBlur = 0;
+
+    // Boss name
+    ctx.fillStyle = boss.eyeColor;
+    ctx.shadowColor = boss.eyeColor;
+    ctx.shadowBlur = 4;
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(boss.name.toUpperCase(), bodyCx, boss.y - 10 - (boss.style <= 4 ? 8 : 0));
+    ctx.shadowBlur = 0;
+
+    // Damage flash when low HP
+    if (hpRatio < 0.3) {
+      ctx.globalAlpha = 0.1 + Math.sin(t * 10) * 0.08;
+      ctx.fillStyle = '#FF0000';
+      ctx.fillRect(boss.x - 5, boss.y - 5, boss.width + 10, boss.height + 10);
+      ctx.globalAlpha = 1;
+    }
   }
 
   for (const t of trails) {

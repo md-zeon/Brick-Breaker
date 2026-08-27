@@ -42,6 +42,11 @@ export interface Boss {
   dx: number;
   dy: number;
   segments: BossSegment[];
+  name: string;
+  bodyColor: string;
+  accentColor: string;
+  eyeColor: string;
+  style: number;
 }
 
 export interface BossSegment {
