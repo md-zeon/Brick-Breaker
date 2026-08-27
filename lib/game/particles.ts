@@ -25,7 +25,8 @@ export function createParticles(x: number, y: number, color: string, count: numb
 }
 
 export function updateParticles(particles: Particle[], dt: number): void {
-  for (let i = particles.length - 1; i >= 0; i--) {
+  let i = particles.length;
+  while (i--) {
     const p = particles[i];
     p.x += p.dx * dt;
     p.y += p.dy * dt;
@@ -33,7 +34,8 @@ export function updateParticles(particles: Particle[], dt: number): void {
     p.life -= 0.025 * dt;
 
     if (p.life <= 0) {
-      particles.splice(i, 1);
+      particles[i] = particles[particles.length - 1];
+      particles.length--;
     }
   }
 }

@@ -88,7 +88,7 @@ export interface PowerUp {
   active: boolean;
 }
 
-export type PowerUpType = 'wide' | 'multi' | 'slow' | 'life' | 'sticky' | 'laser' | 'fireball' | 'magnet' | 'score2x';
+export type PowerUpType = 'wide' | 'slow' | 'life' | 'laser' | 'fireball' | 'magnet' | 'score2x';
 
 export type GameState = 'menu' | 'playing' | 'paused' | 'gameover' | 'levelcomplete' | 'levelselect' | 'endless';
 
@@ -146,4 +146,5 @@ export interface GameData {
   backgroundStars: BackgroundStar[];
   bgTime: number;
   lastTime: number;
+  useShadows: boolean;
 }

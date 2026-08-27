@@ -16,6 +16,17 @@ const COMBO_TIMEOUT = 90;
 const LASER_SPEED = 8;
 const LASER_COOLDOWN = 15;
 
+function setShadow(ctx: CanvasRenderingContext2D, useShadows: boolean, color: string, blur: number): void {
+  if (useShadows) {
+    ctx.shadowColor = color;
+    ctx.shadowBlur = blur;
+  }
+}
+
+function clearShadow(ctx: CanvasRenderingContext2D, useShadows: boolean): void {
+  if (useShadows) ctx.shadowBlur = 0;
+}
+
 function createBackgroundStars(width: number, height: number): BackgroundStar[] {
   const stars: BackgroundStar[] = [];
   for (let i = 0; i < 60; i++) {
@@ -251,6 +262,13 @@ function createBoss(levelIndex: number, canvasWidth: number, canvasHeight: numbe
   };
 }
 
+function detectUseShadows(): boolean {
+  if (typeof navigator === 'undefined') return true;
+  if (navigator.maxTouchPoints > 0) return false;
+  if ((navigator.hardwareConcurrency || 4) <= 2) return false;
+  return true;
+}
+
 export function createGameData(canvasWidth: number, canvasHeight: number): GameData {
   let highScore = 0;
   let maxUnlockedLevel = 0;
@@ -288,6 +306,7 @@ export function createGameData(canvasWidth: number, canvasHeight: number): GameD
     backgroundStars: createBackgroundStars(canvasWidth, canvasHeight),
     bgTime: 0,
     lastTime: 0,
+    useShadows: detectUseShadows(),
   };
 }
 
@@ -433,7 +452,8 @@ function addShake(data: GameData, intensity: number): void {
 function pushParticles(data: GameData, newParticles: Particle[]): void {
   data.particles.push(...newParticles);
   if (data.particles.length > MAX_TOTAL_PARTICLES) {
-    data.particles.splice(0, data.particles.length - MAX_TOTAL_PARTICLES);
+    const excess = data.particles.length - MAX_TOTAL_PARTICLES;
+    data.particles.splice(0, excess);
   }
 }
 
@@ -459,10 +479,12 @@ function addTrail(data: GameData): void {
 }
 
 function updateTrails(data: GameData, dt: number): void {
-  for (let i = data.trails.length - 1; i >= 0; i--) {
+  let i = data.trails.length;
+  while (i--) {
     data.trails[i].life -= 0.08 * dt;
     if (data.trails[i].life <= 0) {
-      data.trails.splice(i, 1);
+      data.trails[i] = data.trails[data.trails.length - 1];
+      data.trails.length--;
     }
   }
 }
@@ -894,18 +916,16 @@ function renderBackground(ctx: CanvasRenderingContext2D, data: GameData): void {
   ctx.lineWidth = 1;
   const gridSize = 40;
   const offsetY = (bgTime * 20) % gridSize;
+  ctx.beginPath();
   for (let y = -gridSize + offsetY; y < canvas.height + gridSize; y += gridSize) {
-    ctx.beginPath();
     ctx.moveTo(0, y);
     ctx.lineTo(canvas.width, y);
-    ctx.stroke();
   }
   for (let x = 0; x < canvas.width; x += gridSize) {
-    ctx.beginPath();
     ctx.moveTo(x, 0);
     ctx.lineTo(x, canvas.height);
-    ctx.stroke();
   }
+  ctx.stroke();
 
   for (const star of backgroundStars) {
     ctx.globalAlpha = star.alpha * (0.5 + Math.sin(bgTime * 2 + star.x) * 0.5);
@@ -987,13 +1007,12 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
       const glowIntensity = 0.1 + (damageLevel / brick.maxHits) * 0.25;
       const pulse = Math.sin(data.bgTime * 4 + bx * 0.05) * 0.5 + 0.5;
       ctx.globalAlpha = glowIntensity * pulse;
-      ctx.shadowColor = brick.color;
-      ctx.shadowBlur = 8 + damageLevel * 4;
+      setShadow(ctx, data.useShadows, brick.color, 8 + damageLevel * 4);
       ctx.fillStyle = brick.color;
       ctx.beginPath();
       ctx.roundRect(bx, by, bw, bh, 3);
       ctx.fill();
-      ctx.shadowBlur = 0;
+      clearShadow(ctx, data.useShadows);
       ctx.globalAlpha = 1;
     }
 
@@ -1042,12 +1061,11 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
       const ePulse = Math.sin(data.bgTime * 6) * 0.3 + 0.7;
       ctx.strokeStyle = `rgba(255,215,0,${ePulse})`;
       ctx.lineWidth = 2;
-      ctx.shadowColor = '#FFD700';
-      ctx.shadowBlur = 6;
+      setShadow(ctx, data.useShadows, '#FFD700', 6);
       ctx.beginPath();
       ctx.roundRect(bx + 1, by + 1, bw - 2, bh - 2, 2);
       ctx.stroke();
-      ctx.shadowBlur = 0;
+      clearShadow(ctx, data.useShadows);
 
       // Bomb icon
       ctx.fillStyle = '#FFD700';
@@ -1102,8 +1120,7 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
     for (const seg of boss.segments) {
       ctx.save();
 
-      ctx.shadowColor = boss.accentColor;
-      ctx.shadowBlur = 6 + Math.sin(t * 3 + seg.x * 0.1) * 3;
+      setShadow(ctx, data.useShadows, boss.accentColor, 6 + Math.sin(t * 3 + seg.x * 0.1) * 3);
 
       ctx.fillStyle = seg.color;
       ctx.beginPath();
@@ -1113,7 +1130,7 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
       ctx.fillStyle = `rgba(255,255,255,0.15)`;
       ctx.fillRect(seg.x + 3, seg.y + 2, seg.width - 6, 3);
 
-      ctx.shadowBlur = 0;
+      clearShadow(ctx, data.useShadows);
 
       const hpPct = seg.hp / segTier;
       ctx.fillStyle = '#1a1a1a';
@@ -1153,12 +1170,11 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
 
       // Iris
       ctx.fillStyle = boss.eyeColor;
-      ctx.shadowColor = boss.eyeColor;
-      ctx.shadowBlur = 8;
+      setShadow(ctx, data.useShadows, boss.eyeColor, 8);
       ctx.beginPath();
       ctx.arc(bodyCx + ex, eyeY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowBlur = 0;
+      clearShadow(ctx, data.useShadows);
 
       // Pupil
       ctx.fillStyle = '#000000';
@@ -1188,19 +1204,17 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
     ctx.fillRect(bodyCx - 45, boss.y + boss.height + 12, 90, 6);
     const barColor = hpRatio > 0.5 ? '#FF4444' : hpRatio > 0.25 ? '#FF8800' : '#FF0000';
     ctx.fillStyle = barColor;
-    ctx.shadowColor = barColor;
-    ctx.shadowBlur = 6;
+    setShadow(ctx, data.useShadows, barColor, 6);
     ctx.fillRect(bodyCx - 45, boss.y + boss.height + 12, 90 * hpRatio, 6);
-    ctx.shadowBlur = 0;
+    clearShadow(ctx, data.useShadows);
 
     // Boss name
     ctx.fillStyle = boss.eyeColor;
-    ctx.shadowColor = boss.eyeColor;
-    ctx.shadowBlur = 4;
+    setShadow(ctx, data.useShadows, boss.eyeColor, 4);
     ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'center';
     ctx.fillText(boss.name.toUpperCase(), bodyCx, boss.y - 10 - (boss.style <= 4 ? 8 : 0));
-    ctx.shadowBlur = 0;
+    clearShadow(ctx, data.useShadows);
 
     // Damage flash when low HP
     if (hpRatio < 0.3) {
@@ -1233,35 +1247,31 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
 
   // Ball rendering
   if (data.activePowerUp === 'fireball') {
-    ctx.shadowColor = '#FF6600';
-    ctx.shadowBlur = 16;
+    setShadow(ctx, data.useShadows, '#FF6600', 16);
     ctx.fillStyle = '#FF4400';
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius + 2, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowColor = '#FFAA00';
-    ctx.shadowBlur = 8;
+    setShadow(ctx, data.useShadows, '#FFAA00', 8);
     ctx.fillStyle = '#FFCC00';
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
+    clearShadow(ctx, data.useShadows);
   } else {
-    ctx.shadowColor = COLORS.ball;
-    ctx.shadowBlur = 12;
+    setShadow(ctx, data.useShadows, COLORS.ball, 12);
     ctx.fillStyle = COLORS.ball;
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
+    clearShadow(ctx, data.useShadows);
   }
 
   for (const laser of lasers) {
     ctx.fillStyle = COLORS.laser;
-    ctx.shadowColor = COLORS.laser;
-    ctx.shadowBlur = 8;
+    setShadow(ctx, data.useShadows, COLORS.laser, 8);
     ctx.fillRect(laser.x, laser.y, laser.width, laser.height);
-    ctx.shadowBlur = 0;
+    clearShadow(ctx, data.useShadows);
   }
 
   for (const p of particles) {
@@ -1272,7 +1282,7 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
   ctx.globalAlpha = 1;
 
   for (const p of powerups) {
-    drawPowerUp(ctx, p, data.bgTime);
+    drawPowerUp(ctx, p, data.bgTime, data.useShadows);
   }
 
   if (data.combo > 1) {
@@ -1286,12 +1296,11 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
 
   if (data.activePowerUp === 'score2x') {
     ctx.fillStyle = '#EAB308';
-    ctx.shadowColor = '#EAB308';
-    ctx.shadowBlur = 6;
+    setShadow(ctx, data.useShadows, '#EAB308', 6);
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('SCORE ×2', canvas.width / 2, canvas.height / 2 + 60);
-    ctx.shadowBlur = 0;
+    clearShadow(ctx, data.useShadows);
   }
 
   ctx.restore();

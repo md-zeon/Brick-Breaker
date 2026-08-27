@@ -11,8 +11,6 @@ const POWERUP_THEME: Record<PowerUpType, { color: string; glow: string; icon: st
   fireball: { color: '#F97316', glow: '#FB923C', icon: '🔥' },
   magnet:   { color: '#6366F1', glow: '#818CF8', icon: '◎' },
   score2x:  { color: '#EAB308', glow: '#FACC15', icon: '×2' },
-  multi:    { color: '#8B5CF6', glow: '#A78BFA', icon: '✦' },
-  sticky:   { color: '#22C55E', glow: '#4ADE80', icon: '▼' },
 };
 
 export function maybeSpawnPowerUp(x: number, y: number, chance: number): PowerUp | null {
@@ -40,7 +38,7 @@ export function updatePowerUps(powerups: PowerUp[], canvasHeight: number, dt: nu
   }
 }
 
-export function drawPowerUp(ctx: CanvasRenderingContext2D, powerup: PowerUp, time: number): void {
+export function drawPowerUp(ctx: CanvasRenderingContext2D, powerup: PowerUp, time: number, useShadows: boolean): void {
   const theme = POWERUP_THEME[powerup.type];
   const cx = powerup.x + powerup.width / 2;
   const cy = powerup.y + powerup.height / 2;
@@ -51,8 +49,10 @@ export function drawPowerUp(ctx: CanvasRenderingContext2D, powerup: PowerUp, tim
 
   // Outer glow
   ctx.globalAlpha = 0.3 * pulse;
-  ctx.shadowColor = theme.glow;
-  ctx.shadowBlur = 14;
+  if (useShadows) {
+    ctx.shadowColor = theme.glow;
+    ctx.shadowBlur = 14;
+  }
   ctx.fillStyle = theme.glow;
   ctx.beginPath();
   ctx.arc(cx, cy, r + 3, 0, Math.PI * 2);
