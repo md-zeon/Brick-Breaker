@@ -14,6 +14,8 @@ body {
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
 }
 
 canvas {

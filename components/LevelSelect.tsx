@@ -19,33 +19,33 @@ export default function LevelSelect({ onSelect, onBack, maxUnlockedLevel }: Leve
   const visible = LEVELS.slice(start, end);
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 rounded-lg">
-      <div className="text-center w-full max-h-full overflow-hidden px-4 py-3">
-        <h2 className="text-xl font-bold text-white mb-3">SELECT LEVEL</h2>
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 rounded-lg overflow-hidden">
+      <div className="text-center w-full max-h-full overflow-hidden px-2 sm:px-4 py-2 sm:py-3">
+        <h2 className="text-lg sm:text-xl font-bold text-white mb-2 sm:mb-3">SELECT LEVEL</h2>
 
         {LEVELS.length > PAGE_SIZE && (
-          <div className="flex justify-center gap-2 mb-3">
+          <div className="flex justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
             <button
               onClick={() => setPage(Math.max(0, page - 1))}
               disabled={page === 0}
-              className="px-3 py-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-30 text-white rounded text-sm transition-colors"
+              className="px-2 sm:px-3 py-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-30 text-white rounded text-xs sm:text-sm transition-colors"
             >
               ← Prev
             </button>
-            <span className="text-gray-400 text-sm self-center">
+            <span className="text-gray-400 text-xs sm:text-sm self-center">
               {start + 1}–{end} of {LEVELS.length}
             </span>
             <button
               onClick={() => setPage(Math.min(Math.ceil(LEVELS.length / PAGE_SIZE) - 1, page + 1))}
               disabled={end >= LEVELS.length}
-              className="px-3 py-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-30 text-white rounded text-sm transition-colors"
+              className="px-2 sm:px-3 py-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-30 text-white rounded text-xs sm:text-sm transition-colors"
             >
               Next →
             </button>
           </div>
         )}
 
-        <div className="grid grid-cols-10 gap-1.5 mb-4 max-h-[340px] overflow-y-auto">
+        <div className="grid grid-cols-8 sm:grid-cols-10 gap-1 sm:gap-1.5 mb-3 sm:mb-4 max-h-[280px] sm:max-h-[340px] overflow-y-auto">
           {visible.map((lvl, i) => {
             const idx = start + i;
             const num = idx + 1;
@@ -57,7 +57,7 @@ export default function LevelSelect({ onSelect, onBack, maxUnlockedLevel }: Leve
                 key={idx}
                 onClick={() => !isLocked && onSelect(idx)}
                 disabled={isLocked}
-                className={`w-11 h-11 font-bold rounded-lg transition-all text-xs ${
+                className={`w-9 h-9 sm:w-11 sm:h-11 font-bold rounded-lg transition-all text-[10px] sm:text-xs ${
                   isLocked
                     ? 'bg-gray-900 text-gray-600 cursor-not-allowed border border-gray-800'
                     : isCurrent
@@ -78,7 +78,7 @@ export default function LevelSelect({ onSelect, onBack, maxUnlockedLevel }: Leve
 
         <button
           onClick={onBack}
-          className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm"
+          className="px-4 sm:px-6 py-1.5 sm:py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-xs sm:text-sm"
         >
           BACK
         </button>

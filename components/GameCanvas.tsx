@@ -44,8 +44,8 @@ export default function GameCanvas() {
     if (!containerRef.current) return;
     const parent = containerRef.current.parentElement;
     if (!parent) return;
-    const availW = parent.clientWidth - 32;
-    const availH = parent.clientHeight - 32;
+    const availW = parent.clientWidth - 16;
+    const availH = parent.clientHeight - 16;
     const sx = availW / CANVAS_WIDTH;
     const sy = availH / CANVAS_HEIGHT;
     setScale(Math.min(sx, sy, 1));
@@ -54,7 +54,20 @@ export default function GameCanvas() {
   useEffect(() => {
     updateScale();
     window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
+    window.addEventListener('orientationchange', updateScale);
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', updateScale);
+      vv.addEventListener('scroll', updateScale);
+    }
+    return () => {
+      window.removeEventListener('resize', updateScale);
+      window.removeEventListener('orientationchange', updateScale);
+      if (vv) {
+        vv.removeEventListener('resize', updateScale);
+        vv.removeEventListener('scroll', updateScale);
+      }
+    };
   }, [updateScale]);
 
   useEffect(() => {
@@ -241,7 +254,7 @@ export default function GameCanvas() {
   };
 
   return (
-    <div ref={containerRef} className="relative select-none" style={{ width: CANVAS_WIDTH * scale, height: CANVAS_HEIGHT * scale }}>
+    <div ref={containerRef} className="relative select-none" style={{ width: CANVAS_WIDTH * scale, height: CANVAS_HEIGHT * scale, maxWidth: '100vw', maxHeight: '100dvh' }}>
       <canvas
         ref={canvasRef}
         className="rounded-lg touch-none"
@@ -287,9 +300,9 @@ export default function GameCanvas() {
       )}
 
       {state === 'paused' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-lg">
-          <h2 className="text-3xl font-bold text-white mb-2">PAUSED</h2>
-          <p className="text-gray-400 text-xs mb-6">Press P or ESC to resume</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-lg overflow-hidden">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2">PAUSED</h2>
+          <p className="text-gray-400 text-[10px] sm:text-xs mb-4 sm:mb-6">Press P or ESC to resume</p>
           <button
             onClick={() => {
               const data = gameDataRef.current;
@@ -299,7 +312,7 @@ export default function GameCanvas() {
                 setState(data.state);
               }
             }}
-            className="block w-44 mx-auto mb-3 px-6 py-3 bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-600/20"
+            className="block w-36 sm:w-44 mx-auto mb-2 sm:mb-3 px-5 sm:px-6 py-2.5 sm:py-3 bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-600/20 text-sm sm:text-base"
           >
             RESUME
           </button>
@@ -311,7 +324,7 @@ export default function GameCanvas() {
                 setState('menu');
               }
             }}
-            className="block w-44 mx-auto px-6 py-3 bg-gray-700 hover:bg-gray-600 active:bg-gray-800 text-white font-semibold rounded-lg transition-all"
+            className="block w-36 sm:w-44 mx-auto px-5 sm:px-6 py-2.5 sm:py-3 bg-gray-700 hover:bg-gray-600 active:bg-gray-800 text-white font-semibold rounded-lg transition-all text-sm sm:text-base"
           >
             QUIT TO MENU
           </button>
