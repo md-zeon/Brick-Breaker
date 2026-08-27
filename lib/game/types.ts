@@ -30,6 +30,7 @@ export interface Brick {
   color: string;
   points: number;
   explosive?: boolean;
+  hitFlash?: number;
 }
 
 export interface Boss {

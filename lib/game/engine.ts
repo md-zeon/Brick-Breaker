@@ -492,6 +492,7 @@ function updateLasers(data: GameData): void {
         laser.y < brick.y + brick.height &&
         laser.y + laser.height > brick.y
       ) {
+        brick.hitFlash = 1;
         brick.hits--;
         if (brick.hits === 0) {
           data.score += brick.points;
@@ -683,6 +684,7 @@ export function updateGame(data: GameData, mouseX: number): void {
 
     const collision = ballBrickCollision(data.ball, brick);
     if (collision.hit) {
+      brick.hitFlash = 1;
       brick.hits--;
       if (brick.hits === 0) {
         data.combo++;
@@ -850,26 +852,172 @@ export function renderGame(ctx: CanvasRenderingContext2D, data: GameData): void 
 
   for (const brick of bricks) {
     if (brick.hits === 0) continue;
-    ctx.fillStyle = brick.color;
+    const bx = brick.x;
+    const by = brick.y;
+    const bw = brick.width;
+    const bh = brick.height;
+    const isIndestructible = brick.hits === -1;
+    const isMulti = brick.maxHits > 1 && !isIndestructible;
+    const damageLevel = isMulti ? brick.maxHits - brick.hits : 0;
+
+    // Hit flash decay
+    if (brick.hitFlash && brick.hitFlash > 0) {
+      brick.hitFlash = Math.max(0, brick.hitFlash - 0.08);
+    }
+
+    ctx.save();
+
+    // 3D gradient fill
+    const grad = ctx.createLinearGradient(bx, by, bx, by + bh);
+    if (isIndestructible) {
+      grad.addColorStop(0, '#9CA3AF');
+      grad.addColorStop(0.3, '#6B7280');
+      grad.addColorStop(1, '#374151');
+    } else {
+      const baseR = parseInt(brick.color.slice(1, 3), 16);
+      const baseG = parseInt(brick.color.slice(3, 5), 16);
+      const baseB = parseInt(brick.color.slice(5, 7), 16);
+      const hi = `rgb(${Math.min(255, baseR + 40)},${Math.min(255, baseG + 40)},${Math.min(255, baseB + 40)})`;
+      const lo = `rgb(${Math.floor(baseR * 0.55)},${Math.floor(baseG * 0.55)},${Math.floor(baseB * 0.55)})`;
+      grad.addColorStop(0, hi);
+      grad.addColorStop(0.35, brick.color);
+      grad.addColorStop(1, lo);
+    }
+
+    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.roundRect(brick.x, brick.y, brick.width, brick.height, 3);
+    ctx.roundRect(bx, by, bw, bh, 3);
     ctx.fill();
 
-    if (brick.explosive) {
-      ctx.strokeStyle = '#FFD700';
-      ctx.lineWidth = 2;
+    // Bevel highlight (top edge)
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.beginPath();
+    ctx.roundRect(bx + 1, by + 1, bw - 2, bh * 0.35, [3, 3, 0, 0]);
+    ctx.fill();
+
+    // Bevel shadow (bottom edge)
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(bx + 2, by + bh - 3, bw - 4, 2);
+
+    // Brick texture — subtle mortar lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(bx + bw * 0.33, by + 2);
+    ctx.lineTo(bx + bw * 0.33, by + bh - 2);
+    ctx.moveTo(bx + bw * 0.66, by + 2);
+    ctx.lineTo(bx + bw * 0.66, by + bh - 2);
+    ctx.stroke();
+
+    // Pulsing glow on multi-hit bricks
+    if (isMulti && brick.hits > 0) {
+      const glowIntensity = 0.1 + (damageLevel / brick.maxHits) * 0.25;
+      const pulse = Math.sin(data.bgTime * 4 + bx * 0.05) * 0.5 + 0.5;
+      ctx.globalAlpha = glowIntensity * pulse;
+      ctx.shadowColor = brick.color;
+      ctx.shadowBlur = 8 + damageLevel * 4;
+      ctx.fillStyle = brick.color;
       ctx.beginPath();
-      ctx.roundRect(brick.x + 1, brick.y + 1, brick.width - 2, brick.height - 2, 2);
-      ctx.stroke();
+      ctx.roundRect(bx, by, bw, bh, 3);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
     }
 
-    if (brick.hits > 1 && brick.hits !== -1) {
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.font = 'bold 11px monospace';
+    // Damage cracks
+    if (isMulti && damageLevel > 0) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.lineWidth = 1.5;
+      const cx = bx + bw / 2;
+      const cy = by + bh / 2;
+
+      if (damageLevel >= 1) {
+        ctx.beginPath();
+        ctx.moveTo(cx - 8, by + 2);
+        ctx.lineTo(cx - 3, cy - 2);
+        ctx.lineTo(cx - 10, cy + 4);
+        ctx.stroke();
+      }
+      if (damageLevel >= 2) {
+        ctx.beginPath();
+        ctx.moveTo(cx + 6, by + 3);
+        ctx.lineTo(cx + 2, cy + 1);
+        ctx.lineTo(cx + 9, cy + 5);
+        ctx.stroke();
+      }
+      if (damageLevel >= 3 && brick.maxHits >= 4) {
+        ctx.beginPath();
+        ctx.moveTo(cx - 2, by + bh - 3);
+        ctx.lineTo(cx + 1, cy + 3);
+        ctx.lineTo(cx + 5, by + bh - 2);
+        ctx.stroke();
+      }
+    }
+
+    // Hit flash overlay
+    if (brick.hitFlash && brick.hitFlash > 0) {
+      ctx.globalAlpha = brick.hitFlash;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.roundRect(bx, by, bw, bh, 3);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // Explosive glow border
+    if (brick.explosive) {
+      const ePulse = Math.sin(data.bgTime * 6) * 0.3 + 0.7;
+      ctx.strokeStyle = `rgba(255,215,0,${ePulse})`;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#FFD700';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.roundRect(bx + 1, by + 1, bw - 2, bh - 2, 2);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Bomb icon
+      ctx.fillStyle = '#FFD700';
+      ctx.font = 'bold 10px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(String(brick.hits), brick.x + brick.width / 2, brick.y + brick.height / 2);
+      ctx.fillText('✦', bx + bw / 2, by + bh / 2);
     }
+
+    // Indestructible metal texture
+    if (isIndestructible) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      ctx.lineWidth = 0.5;
+      for (let lx = bx + 6; lx < bx + bw - 4; lx += 8) {
+        ctx.beginPath();
+        ctx.moveTo(lx, by + 3);
+        ctx.lineTo(lx, by + bh - 3);
+        ctx.stroke();
+      }
+      // Bolt circles
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.beginPath();
+      ctx.arc(bx + 5, by + bh / 2, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(bx + bw - 5, by + bh / 2, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Multi-hit count badge
+    if (isMulti && brick.hits > 0) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.beginPath();
+      ctx.arc(bx + bw - 8, by + 8, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(brick.hits), bx + bw - 8, by + 9);
+    }
+
+    ctx.restore();
   }
 
   if (boss) {
